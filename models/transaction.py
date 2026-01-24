@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, func
-from sqlalchemy.orm import relationship
+#from sqlalchemy.orm import relationship
 from db.base import Base
 
 class Transaction(Base):
@@ -7,7 +7,8 @@ class Transaction(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)
-    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    category_id = Column(Integer, nullable=True)
+   # category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
 
     amount_minor = Column(Integer, nullable=False)  # сумма в копейках, +доход, -расход
     currency = Column(String(3), nullable=False)
@@ -18,5 +19,5 @@ class Transaction(Base):
     transfer_group_id = Column(Integer, nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
 
-    account = relationship("Account")
-    category = relationship("Category")
+    #account = relationship("Account")
+    #category = relationship("Category")

@@ -1,7 +1,7 @@
 from .base import Base, engine, SessionLocal
 from contextlib import contextmanager
 
-from .base import SessionLocal
+
 
 @contextmanager
 def session_scope():
