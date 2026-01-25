@@ -1,0 +1,237 @@
+Я не могу напрямую создать файл в твоей файловой системе, но можешь скопировать и сохранить этот текст как, например, project_summary.txt:
+
+Проект: личный финтрегер с REST‑API на FastAPI, БД SQLite/SQLAlchemy и планируемым фронтендом на React + Tailwind.
+
+Назначение
+Личный учёт финансов: счета, доходы/расходы и бюджеты.
+Бэкенд предоставляет JSON‑API поверх SQLite‑базы, архитектура слоистая: API‑роутеры → сервисный слой → ORM/БД.
+
+Структура бэкенда (myFinance/)
+
+api/ — слой API (FastAPI роутеры + Pydantic‑схемы):
+
+api/accounts.py — роутер /accounts.
+
+api/categories.py — роутер /categories.
+
+api/transactions.py — роутер /transactions.
+
+api/schemas.py — Pydantic‑модели для запросов/ответов.
+
+services/ — бизнес‑логика (работа с Session, правила создания операций):
+
+services/accounts.py — операции над счетами.
+
+services/categories.py — операции над категориями.
+
+services/transactions.py — доход, расход, перевод, работа со знаками сумм.
+
+models/ — ORM‑модели SQLAlchemy:
+
+models/account.py — модель счёта.
+
+models/category.py — модель категории.
+
+models/transaction.py — модель транзакции.
+
+models/budget.py — модель бюджета.
+
+db/ — инфраструктура БД:
+
+db/base.py — engine, SessionLocal, Base = declarative_base.
+
+db/__init__.py — session_scope и зависимости для FastAPI.
+
+migrations/ — Alembic‑миграции, включая init_schema.
+
+templates/db_view.html — Jinja2‑шаблон для просмотра сырых данных.
+
+main.py (корень):
+
+создаёт приложение FastAPI;
+
+подключает роутеры accounts, categories, transactions;
+
+настраивает Jinja2Templates(directory="templates");
+
+реализует /db_view для отображения таблиц БД как HTML.
+
+Схема базы данных (SQLite myfinance.db)
+
+Основные таблицы: accounts, categories, transactions, budgets.
+
+accounts
+
+id: INTEGER, PK
+
+name: TEXT NOT NULL — название счёта
+
+type: TEXT NOT NULL — "cash", "card", "brokerage" и т.п.
+
+currency: TEXT(3) NOT NULL — код валюты ("RUB" и др.)
+
+is_active: BOOLEAN NOT NULL
+
+created_at: DateTime, server_default=CURRENT_TIMESTAMP
+
+categories
+
+id: PK
+
+name: TEXT NOT NULL — название категории
+
+type: TEXT NOT NULL — "income" или "expense"
+
+parent_id: INTEGER NULL — родительская категория (иерархия)
+
+is_active: BOOLEAN NOT NULL
+
+transactions
+
+id: PK
+
+account_id: INTEGER NOT NULL — FK на accounts.id
+
+category_id: INTEGER NULL — FK на categories.id
+
+amount_minor: INTEGER NOT NULL — сумма в минимальных единицах (копейки); в API приходит как > 0, знак задаётся типом операции (kind)
+
+currency: TEXT(3)
+
+dt: DateTime — момент операции
+
+description: TEXT NULL — описание
+
+transfer_group_id: INTEGER NULL — группа перевода (две проводки)
+
+created_at: DateTime, server_default=CURRENT_TIMESTAMP
+
+budgets
+
+id: PK
+
+category_id: INTEGER NOT NULL — категория бюджета
+
+period_start: Date/DateTime — начало периода
+
+period_end: Date/DateTime — конец периода
+
+amount_minor: INTEGER NOT NULL — бюджетная сумма в минимальных единицах
+
+API
+
+Схемы описаны в api/schemas.py (Pydantic v2).
+Основные роутеры: api/accounts.py, api/categories.py, api/transactions.py.
+
+/accounts
+
+GET /accounts → список счетов (List[AccountOut]), использует list_accounts(active_only=False) в сервисе.
+
+POST /accounts → AccountOut (201), тело AccountCreate (name, type, currency), в сервисе создаётся счёт с is_active=True.
+
+/categories
+
+GET /categories → список категорий (List[CategoryOut]), использует list_categories(type=None, active_only=False).
+
+POST /categories → CategoryOut (201), тело CategoryCreate (name, type ∈ {"income","expense"}, parent_id).
+
+/transactions
+
+GET /transactions → List[TransactionOut], возвращает все транзакции, отсортированные по id.
+
+POST /transactions →
+
+если kind = "income" → одна транзакция дохода (TransactionOut);
+
+если kind = "expense" → одна транзакция расхода;
+
+если kind = "transfer" → две транзакции (списание и зачисление) как список List[TransactionOut].
+
+Тело TransactionCreate:
+
+account_id: int
+
+category_id: int | None
+
+amount_minor: int (валидатор: > 0)
+
+dt: datetime | None
+
+description: str | None
+
+currency: str = "RUB"
+
+kind: "income" | "expense" | "transfer"
+
+to_account_id: int | None (обязателен для transfer, иначе 400).
+
+Логика по типу операции (income/expense/transfer) делегируется сервисному слою в services/transactions.py.
+
+/db_view
+
+HTML‑страница (Jinja2) для просмотра сырых данных по таблицам accounts, categories, transactions, budgets.
+
+Использует session_scope и функции *_to_dict для безопасной конвертации ORM‑объектов в dict после закрытия сессии.
+
+Идеи по фронтенду (React + Tailwind)
+
+Планируемый стек фронта: Vite + React + TypeScript + Tailwind CSS.
+Цель — сделать современный дашборд‑интерфейс к существующему API.
+
+Структура фронта (план):
+
+src/api/ — функции для работы с FastAPI:
+
+getAccounts, createAccount → /accounts
+
+getCategories, createCategory → /categories
+
+getTransactions, createTransaction → /transactions
+
+src/components/ — общие компоненты (таблицы, формы, карточки, графики).
+
+src/pages/ — страницы:
+
+Dashboard
+
+Accounts
+
+Categories
+
+Transactions
+
+src/layouts/ — layout с сайдбаром и верхней панелью.
+
+Роутинг через react-router.
+
+Основные страницы:
+
+Dashboard
+
+Общий баланс по счетам.
+
+Карточки «Доход за период», «Расход за период», «Чистый поток».
+
+Графики по дням/неделям и диаграмма распределения расходов по категориям.
+
+Accounts
+
+Таблица счётов (GET /accounts).
+
+Форма создания счёта (POST /accounts).
+
+Categories
+
+Таблица категорий (GET /categories).
+
+Форма создания категории (POST /categories).
+
+В перспективе — дерево категорий.
+
+Transactions
+
+Таблица транзакций (GET /transactions) с фильтрами (дата, счёт, категория, тип).
+
+Форма создания транзакции (POST /transactions) с переключением income/expense/transfer и выбором счётов при переводе.
+
+Визуально — классический Tailwind‑дашборд: левый сайдбар, карточки метрик, таблицы и графики, аккуратная светлая/тёмная тема.
