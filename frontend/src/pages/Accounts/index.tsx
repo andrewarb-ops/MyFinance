@@ -1,5 +1,5 @@
 ﻿import React, {useEffect, useState} from "react";
-
+import MirLogo from "../../assets/Mir-logo.SVG.svg";
 import {getAccounts, deleteAccount} from "../../api/accounts";
 import type {Account} from "../../api/accounts";
 
@@ -114,9 +114,16 @@ const AccountsPage: React.FC = () => {
                             }
                         >
                             <div className="flex items-center gap-4">
-                                <div
-                                    className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-100 text-sm font-semibold text-violet-700">
-                                    {acc.type === "cash" ? "₽" : "МИР"}
+                                <div className="flex h-10 w-10 items-center justify-center">
+                                    {acc.type === "cash" ? (
+                                        <span className="text-lg">₽</span>
+                                    ) : (
+                                        <img
+                                            src={MirLogo}
+                                            alt="Мир"
+                                            className="h-6 w-auto"
+                                        />
+                                    )}
                                 </div>
                                 <div>
                                     <div className="text-xs text-slate-400">
@@ -132,8 +139,8 @@ const AccountsPage: React.FC = () => {
                                     <div className="text-xs text-slate-500">
                                         {acc.card_number && (
                                             <span className="mr-2">
-                        **** {acc.card_number}
-                      </span>
+              **** {acc.card_number}
+            </span>
                                         )}
                                         Валюта: {acc.currency}
                                     </div>
