@@ -1,274 +1,294 @@
 MyFinance
 Личный финансовый трекер для учёта счетов, категорий и транзакций.
-Backend на FastAPI + SQLAlchemy/Alembic, frontend на React + Vite + TypeScript + Tailwind CSS.
+Backend: FastAPI + SQLAlchemy + Alembic
+Frontend: React + Vite + TypeScript + Tailwind CSS
 
+--------------------
 Возможности
+--------------------
 Управление счетами:
-
-банковские карты, наличные, брокерские и любые другие типы;
-
-хранение маски номера карты (формат **** 1234), без сохранения полного номера.
+- банковские карты, наличные, брокерские и любые другие типы;
+- хранение маски номера карты (формат **** 1234), полный номер карты не сохраняется.
 
 Категории доходов и расходов:
-
-иерархия категорий (родитель → дочерние);
-
-разделение на типы: доход / расход.
+- иерархия категорий (родитель → дочерние);
+- разделение по типам: доход / расход.
 
 Транзакции:
-
-доход, расход, перевод между счетами;
-
-сумма в минимальных единицах (копейки), валюта, дата/время, описание, категория.
+- операции дохода, расхода и перевода между счетами;
+- сумма в минимальных единицах (копейки), валюта, дата/время;
+- привязка к категории, текстовое описание;
+- группировка переводов по общему идентификатору.
 
 UI:
-
-современный светлый интерфейс;
-
-страница «Мои счета» с карточками (значок МИР/₽, название, маска номера, валюта, статус);
-
-отдельные страницы для категорий и транзакций (в разработке).
+- современный светлый интерфейс;
+- страница «Мои счета» с карточками (значок МИР/₽, название, маска номера, валюта, статус);
+- модальное окно создания счёта с выбором типа и валюты;
+- отдельные страницы для категорий и транзакций (в разработке).
 
 API:
+- REST‑эндпоинты для счетов, категорий и транзакций;
+- автогенерация Swagger‑документации FastAPI по адресу /docs.
 
-REST‑эндпоинты для счетов, категорий и транзакций;
-
-автогенерация Swagger‑документации FastAPI по адресу /docs.
-
+--------------------
 Стек технологий
-Backend
+--------------------
+Backend:
+- Python
+- FastAPI
+- SQLAlchemy (ORM)
+- Alembic (миграции)
+- SQLite (по умолчанию)
 
-Python, FastAPI
+Frontend:
+- React
+- Vite
+- TypeScript
+- Tailwind CSS
 
-SQLAlchemy (ORM)
+Прочее:
+- monorepo: backend и frontend в одном репозитории;
+- Pydantic v2 для схем API;
+- простой HTML‑шаблон для просмотра содержимого БД.
 
-Alembic (миграции)
+--------------------
+Схема БД
+--------------------
+TABLE accounts
+  COLUMN id                 INTEGER      nullable=False  default=None
+  COLUMN name               VARCHAR      nullable=False  default=None
+  COLUMN type               VARCHAR      nullable=False  default=None
+  COLUMN currency           VARCHAR(3)   nullable=False  default=None
+  COLUMN is_active          BOOLEAN      nullable=False  default=None
+  COLUMN created_at         DATETIME     nullable=False  default=CURRENT_TIMESTAMP
+  COLUMN card_number        VARCHAR(32)  nullable=True   default=None
 
-SQLite (по умолчанию)
+TABLE alembic_version
+  COLUMN version_num        VARCHAR(32)  nullable=False  default=None
 
-Frontend
+TABLE budgets
+  COLUMN id                 INTEGER      nullable=False  default=None
+  COLUMN category_id        INTEGER      nullable=False  default=None
+  COLUMN period_start       DATE         nullable=False  default=None
+  COLUMN period_end         DATE         nullable=False  default=None
+  COLUMN amount_minor       INTEGER      nullable=False  default=None
 
-React
+TABLE categories
+  COLUMN id                 INTEGER      nullable=False  default=None
+  COLUMN name               VARCHAR      nullable=False  default=None
+  COLUMN type               VARCHAR      nullable=False  default=None   -- "income" / "expense"
+  COLUMN parent_id          INTEGER      nullable=True   default=None
+  COLUMN is_active          BOOLEAN      nullable=False  default=None
 
-Vite
+TABLE transactions
+  COLUMN id                 INTEGER      nullable=False  default=None
+  COLUMN account_id         INTEGER      nullable=False  default=None
+  COLUMN category_id        INTEGER      nullable=True   default=None
+  COLUMN amount_minor       INTEGER      nullable=False  default=None
+  COLUMN currency           VARCHAR(3)   nullable=False  default=None
+  COLUMN dt                 DATETIME     nullable=False  default=None
+  COLUMN description        TEXT         nullable=True   default=None
+  COLUMN transfer_group_id  INTEGER      nullable=True   default=None
+  COLUMN created_at         DATETIME     nullable=False  default=CURRENT_TIMESTAMP
 
-TypeScript
-
-Tailwind CSS
-
-Прочее
-
-Monorepo: backend и frontend в одном репозитории
-
-Pydantic v2 для схем API
-
+--------------------
 Структура проекта
-text
-MyFinance/
-  ├── main.py                # точка входа FastAPI-приложения
-  ├── alembic.ini            # конфигурация Alembic
-  ├── myfinance.db           # SQLite-база (dev)
-  ├── Project.txt            # заметки по проекту
+--------------------
+myFinance/
+├── api
+│   ├── __init__.py
+│   ├── accounts.py
+│   ├── categories.py
+│   ├── schemas.py
+│   └── transactions.py
+├── db
+│   ├── __init__.py
+│   └── base.py
+├── frontend
+│   ├── public
+│   │   └── vite.svg
+│   ├── src
+│   │   ├── api
+│   │   │   ├── accounts.ts
+│   │   │   └── client.ts
+│   │   ├── assets
+│   │   │   └── react.svg
+│   │   ├── components
+│   │   │   └── layout
+│   │   │       └── MainLayout.tsx
+│   │   ├── pages
+│   │   │   ├── Accounts
+│   │   │   │   ├── CreateAccountModal.tsx
+│   │   │   │   ├── EditAccountModal.tsx
+│   │   │   │   └── index.tsx
+│   │   │   ├── Categories
+│   │   │   │   └── index.tsx
+│   │   │   ├── Dashboard
+│   │   │   │   └── index.tsx
+│   │   │   └── Transactions
+│   │   │       └── index.tsx
+│   │   ├── App.tsx
+│   │   ├── index.css
+│   │   └── main.tsx
+│   ├── .gitignore
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── postcss.config.cjs
+│   ├── README.md
+│   ├── tailwind.config.cjs
+│   ├── tsconfig.app.json
+│   ├── tsconfig.json
+│   ├── tsconfig.node.json
+│   └── vite.config.ts
+├── migrations
+│   ├── versions
+│   │   ├── 864daeea00b5_add_card_number_to_accounts.py
+│   │   └── a26138cee6f3_init_schema.py
+│   ├── env.py
+│   ├── README
+│   └── script.py.mako
+├── models
+│   ├── __init__.py
+│   ├── account.py
+│   ├── budget.py
+│   ├── category.py
+│   └── transaction.py
+├── services
+│   ├── accounts.py
+│   ├── categories.py
+│   └── transactions.py
+├── templates
+│   └── db_view.html
+├── .gitignore
+├── alembic.ini
+├── check_category_sums.py
+├── clear_db.py
+├── main.py
+├── myfinance.db
+├── PrApi.txt
+├── print_schema.py
+├── Project.txt
+├── PrService.txt
+└── tree.py
+api/ – HTTP‑слой FastAPI.
+​
 
-  ├── api/                   # HTTP-ручки FastAPI
-  │   ├── __init__.py
-  │   ├── accounts.py        # /accounts: GET/POST
-  │   ├── categories.py      # /categories
-  │   ├── transactions.py    # /transactions
-  │   └── schemas.py         # Pydantic-схемы Account/Category/Transaction
+__init__.py – пакетный файл, обычно пустой.
 
-  ├── db/
-  │   ├── __init__.py
-  │   ├── base.py            # engine, SessionLocal, Base
-  │   └── session_scope.py   # контекстный менеджер для сессий
+accounts.py – эндпоинты /accounts (CRUD по счетам, сейчас уже GET/POST/PATCH/DELETE).
 
-  ├── migrations/            # Alembic-миграции
-  │   ├── env.py
-  │   └── versions/
-  │       ├── a26138cee6f3_init_schema.py
-  │       └── 86d4aeea00b5_add_card_number_to_accounts.py
+categories.py – эндпоинты /categories (категории доходов/расходов).
 
-  ├── models/                # ORM-модели SQLAlchemy
-  │   ├── __init__.py
-  │   ├── account.py         # Account: счета
-  │   ├── category.py        # Category: категории
-  │   ├── transaction.py     # Transaction: проводки
-  │   └── budget.py          # Budget: бюджеты по категориям (задел на будущее)
+schemas.py – Pydantic‑схемы: AccountCreate/Update/Out, CategoryCreate/Out, TransactionCreate/Out.
 
-  ├── services/              # бизнес-логика
-  │   ├── __init__.py
-  │   ├── accounts.py        # create_account, list_accounts и т.д.
-  │   ├── categories.py
-  │   └── transactions.py
+transactions.py – эндпоинты /transactions (доход, расход, переводы).
 
-  ├── templates/
-  │   └── dbview.html        # упрощённый HTML-вид для просмотра данных
+db/ – инфраструктура БД.
+​
 
-  ├── scripts/
-  │   ├── clear_db.py        # очистка данных в БД
-  │   └── check_category_sums.py
+__init__.py – экспорт session_scope/SessionLocal.
 
-  └── frontend/              # React/Vite frontend
-      ├── index.html
-      ├── package.json
-      ├── vite.config.ts
-      ├── tailwind.config.cjs
-      ├── postcss.config.cjs
-      └── src/
-          ├── main.tsx
-          ├── App.tsx
-          ├── index.css
-          ├── api/
-          │   ├── client.ts        # apiGet/apiPost с baseURL на FastAPI
-          │   ├── accounts.ts      # типы Account, AccountCreate и функции get/create
-          │   ├── categories.ts
-          │   └── transactions.ts
-          ├── components/
-          │   └── layout/
-          │       └── MainLayout.tsx
-          └── pages/
-              ├── Dashboard/
-              │   └── index.tsx
-              ├── Accounts/
-              │   └── index.tsx    # карточки счетов с маской card_number
-              ├── Categories/
-              │   └── index.tsx
-              └── Transactions/
-                  └── index.tsx
-Доменная модель
-Accounts (счета)
-Таблица accounts:
+base.py – engine, SessionLocal, Base для SQLAlchemy.
 
-id: int — идентификатор.
+models/ – ORM‑модели.
+​
 
-name: str — название счёта (например, «Карта Tinkoff Андрей»).
+__init__.py – собирает модели в пакет.
 
-type: str — тип ("card", "cash", и т.п.).
+account.py – модель счёта (accounts), поля name, type, currency, is_active, card_number, created_at.
 
-currency: str — код валюты (например, "RUB").
+budget.py – бюджеты по категориям и периодам.
 
-is_active: bool — активен ли счёт.
+category.py – категории доходов/расходов (type, parent_id, is_active).
 
-card_number: str | None — маска номера карты в формате **** 1234, полный номер никогда не сохраняется.
+transaction.py – транзакции (account_id, category_id, amount_minor, currency, dt, description, transfer_group_id, created_at).
 
-created_at: datetime — дата создания.
+services/ – бизнес‑логика поверх моделей.
+​
 
-Categories (категории)
-Таблица categories:
+accounts.py – операции со счетами: DTO, маскирование номера карты, create/list/get/deactivate, плюс update_account и delete_account.
 
-id: int
+categories.py – CRUD‑логика для категорий с валидацией типа income/expense.
 
-name: str
+transactions.py – добавление доходов, расходов и переводов, расчёт баланса.
 
-type: str — "income" или "expense".
+migrations/ – Alembic.
+​
 
-parent_id: int | None — ссылка на родительскую категорию.
+versions/ – скрипты миграций (init_schema, добавление card_number).
 
-is_active: bool.
+env.py, script.py.mako, README – стандартная обвязка Alembic.
 
-Transactions (транзакции)
-Таблица transactions:
+templates/
 
-id: int
+db_view.html – HTML‑страница для просмотра содержимого БД (debug‑view).
+​
 
-account_id: int — счёт.
+Прочие backend‑файлы:
+​
 
-category_id: int | None — категория дохода/расхода.
+main.py – создание FastAPI‑приложения, подключение роутеров, CORS, маршрут /db_view.
 
-amount_minor: int — сумма в минимальных единицах (копейки).
+myfinance.db – SQLite‑файл БД.
 
-currency: str — код валюты.
+alembic.ini – конфиг Alembic.
 
-dt: datetime — дата/время.
+check_category_sums.py, clear_db.py, print_schema.py, tree.py – вспомогательные скрипты для отладки и обслуживания.
 
-description: str | None — описание.
-
-transfer_group_id: int | None — группировка для переводов.
-
-created_at: datetime.
-
-API (кратко)
-Примеры основных ручек (полное описание смотри в /docs):
-
-Счета
-GET /accounts
-Возвращает список счетов AccountOut[].
-
-POST /accounts
-Создаёт счёт.
-
-Тело запроса (AccountCreate):
-
-text
-{
-  "name": "Карта Tinkoff Андрей",
-  "type": "card",
-  "currency": "RUB",
-  "card_number": "5536 91- -  - - - -  1234"   // на бэке превратится в "**** 1234"
-}
-Ответ (AccountOut):
-
-text
-{
-  "id": 1,
-  "name": "Карта Tinkoff Андрей",
-  "type": "card",
-  "currency": "RUB",
-  "is_active": true,
-  "card_number": "**** 1234",
-  "created_at": "2026-01-25T08:30:00"
-}
-
-Категории и транзакции реализованы в аналогичном стиле (CategoryCreate/Out, TransactionCreate/Out).
-
-Быстрый старт (локальная разработка)
-Клонировать репозиторий
-
-bash
-git clone https://github.com/andrewarb-ops/MyFinance.git
-cd MyFinance
-Backend
-
-bash
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-
-alembic upgrade head      # применить миграции
-
-uvicorn main:app --reload
-FastAPI будет доступен по адресу http://localhost:8000, Swagger — http://localhost:8000/docs.
+PrApi.txt, PrService.txt, Project.txt – текстовая документация по API, сервисам и проекту в целом.
 
 Frontend
+frontend/public/ – статические файлы (иконки, vite.svg).
+​
 
-bash
-cd frontend
-npm install
-npm run dev
-Интерфейс доступен по адресу http://localhost:5173.
+frontend/src/api/ – тонкий клиент к backend.
+​
 
-Как вносить изменения в модель данных
-Меняем ORM‑модель в models/ (например, добавляем поле в Account).
+client.ts – универсальные функции apiGet, apiPost, apiPatch, apiDelete с fetch.
 
-Создаём Alembic‑миграцию:
+accounts.ts – интерфейсы Account, AccountCreate, AccountUpdate и функции getAccounts, createAccount, updateAccount, deleteAccount.
 
-bash
-alembic revision -m "описание изменения"
-# правим upgrade()/downgrade()
-alembic upgrade head
-Обновляем Pydantic‑схемы в api/schemas.py.
+frontend/src/assets/ – статичные ресурсы (например, react.svg).
+​
 
-Обновляем сервисы (services/*.py) и обработчики в api/*.py.
+frontend/src/components/layout/
 
-Обновляем типы и API‑клиенты на фронте (frontend/src/api/*.ts).
+MainLayout.tsx – общий лейаут приложения (шапка, боковое меню и т.п.).
 
-Обновляем компоненты React/страницы, если нужно.
+frontend/src/pages/ – страницы роутера.
+​
 
-Планы по развитию
-Страница деталей счёта с историей транзакций и быстрыми фильтрами.
+Accounts/
 
-Гибкая аналитика по категориям (диаграммы, топ‑категории за период).
+CreateAccountModal.tsx – модалка для создания нового счёта.
 
-Бюджеты по категориям и уведомления о перерасходе.
+EditAccountModal.tsx – модалка редактирования счёта (включая флаг активности).
 
-Импорт выписок из банков/CSV.
+index.tsx – страница «Мои счета»: запрос списка, рендер карточек, открытие модалок, удаление.
+
+Categories/index.tsx – страница категорий (отображение/редактирование категорий).
+
+Dashboard/index.tsx – дашборд (агрегированные показатели, в разработке).
+
+Transactions/index.tsx – список транзакций.
+
+Корневые файлы фронта:
+​
+
+App.tsx – корневой компонент с роутингом.
+
+main.tsx – входная точка React (mount в DOM).
+
+index.css – глобальные стили, Tailwind base.
+
+Конфиги: vite.config.ts, tsconfig*.json, tailwind.config.cjs, postcss.config.cjs, eslint.config.js, package.json, package-lock.json.
+
+index.html – HTML‑шаблон Vite.
+
+Корень репозитория
+.gitignore – игнор для git (БД, артефакты, node_modules и т.п.).
+​
+
+Project.txt – общее описание проекта, возможностей, схемы БД и структуры (по сути README).

@@ -7,7 +7,6 @@ from pydantic import ConfigDict  # pydantic v2
 
 # ---------- Create-модели ----------
 
-
 class AccountCreate(BaseModel):
     name: str
     type: str
@@ -53,8 +52,17 @@ class TransactionCreate(BaseModel):
         return v
 
 
-# ---------- Out-модели ----------
+# ---------- Update-модели ----------
 
+class AccountUpdate(BaseModel):
+    name: Optional[str] = None
+    type: Optional[str] = None
+    currency: Optional[str] = None
+    card_number: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+# ---------- Out-модели ----------
 
 class AccountOut(BaseModel):
     id: int

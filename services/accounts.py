@@ -67,6 +67,7 @@ def list_accounts(active_only: bool = True) -> List[AccountDTO]:
         query = session.query(Account)
         if active_only:
             query = query.filter(Account.is_active.is_(True))
+
         accounts = query.order_by(Account.id).all()
         return [_to_dto(acc) for acc in accounts]
 
@@ -100,4 +101,63 @@ def deactivate_account(account_id: int) -> bool:
 
         account.is_active = False
         session.add(account)
+        return True
+
+
+def update_account(
+    account_id: int,
+    name: Optional[str] = None,
+    type_: Optional[str] = None,
+    currency: Optional[str] = None,
+    card_number: Optional[str] = None,
+    is_active: Optional[bool] = None,
+) -> Optional[AccountDTO]:
+    """
+    Частично обновить данные счёта.
+    Возвращает DTO обновлённого счёта или None, если счёт не найден.
+    """
+    with session_scope() as session:
+        account = (
+            session.query(Account)
+            .filter(Account.id == account_id)
+            .first()
+        )
+
+        if account is None:
+            return None
+
+        if name is not None:
+            account.name = name
+        if type_ is not None:
+            account.type = type_
+        if currency is not None:
+            account.currency = currency
+        if card_number is not None:
+            account.card_number = _mask_card_number(card_number)
+        if is_active is not None:
+            account.is_active = is_active
+
+        session.add(account)
+        session.flush()
+        session.refresh(account)
+
+        return _to_dto(account)
+
+
+def delete_account(account_id: int) -> bool:
+    """
+    Полностью удалить счёт из базы.
+    Возвращает True, если счёт был найден и удалён.
+    """
+    with session_scope() as session:
+        account = (
+            session.query(Account)
+            .filter(Account.id == account_id)
+            .first()
+        )
+
+        if account is None:
+            return False
+
+        session.delete(account)
         return True
