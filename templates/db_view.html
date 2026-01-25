@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Данные myFinance</title>
+    <style>
+        body { font-family: sans-serif; margin: 16px; }
+        h2 { margin-top: 32px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+        th, td { border: 1px solid #ccc; padding: 4px 8px; font-size: 13px; }
+        th { background: #f0f0f0; }
+        tbody tr:nth-child(even) { background: #fafafa; }
+        code { font-size: 12px; }
+    </style>
+</head>
+<body>
+<h1>Сырые данные myFinance</h1>
+
+<h2>Accounts</h2>
+<table>
+    <thead>
+    <tr>
+        <th>id</th>
+        <th>name</th>
+        <th>type</th>
+        <th>currency</th>
+        <th>is_active</th>
+        <th>created_at</th>
+    </tr>
+    </thead>
+    <tbody>
+{% for a in accounts %}
+    <tr>
+        <td>{{ a.id }}</td>
+        <td>{{ a.name }}</td>
+        <td>{{ a.type }}</td>
+        <td>{{ a.currency }}</td>
+        <td>{{ a.is_active }}</td>
+        <td>{{ a.created_at }}</td>
+    </tr>
+{% endfor %}
+    </tbody>
+</table>
+
+<h2>Categories</h2>
+<table>
+    <thead>
+    <tr>
+        <th>id</th>
+        <th>name</th>
+        <th>type</th>
+        <th>parent_id</th>
+        <th>is_active</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for c in categories %}
+        <tr>
+            <td>{{ c.id }}</td>
+            <td>{{ c.name }}</td>
+            <td>{{ c.type }}</td>
+            <td>{{ c.parent_id }}</td>
+            <td>{{ c.is_active }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<h2>Transactions</h2>
+<table>
+    <thead>
+    <tr>
+        <th>id</th>
+        <th>account_id</th>
+        <th>category_id</th>
+        <th>amount_minor</th>
+        <th>currency</th>
+        <th>dt</th>
+        <th>description</th>
+        <th>transfer_group_id</th>
+        <th>created_at</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for t in transactions %}
+        <tr>
+            <td>{{ t.id }}</td>
+            <td>{{ t.account_id }}</td>
+            <td>{{ t.category_id }}</td>
+            <td>{{ t.amount_minor }}</td>
+            <td>{{ t.currency }}</td>
+            <td>{{ t.dt }}</td>
+            <td>{{ t.description }}</td>
+            <td>{{ t.transfer_group_id }}</td>
+            <td>{{ t.created_at }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<h2>Budgets</h2>
+<table>
+    <thead>
+    <tr>
+        <th>id</th>
+        <th>category_id</th>
+        <th>period_start</th>
+        <th>period_end</th>
+        <th>amount_minor</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for b in budgets %}
+        <tr>
+            <td>{{ b.id }}</td>
+            <td>{{ b.category_id }}</td>
+            <td>{{ b.period_start }}</td>
+            <td>{{ b.period_end }}</td>
+            <td>{{ b.amount_minor }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+</body>
+</html>
