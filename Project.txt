@@ -1,223 +1,274 @@
-С учётом текущего состояния (новый светлый layout, карточки счетов, скрипт очистки БД) актуальная версия Project.txt должна выглядеть примерно так. Ты можешь просто заменить содержимое файла на этот текст.
+MyFinance
+Личный финансовый трекер для учёта счетов, категорий и транзакций.
+Backend на FastAPI + SQLAlchemy/Alembic, frontend на React + Vite + TypeScript + Tailwind CSS.
 
-Проект: личный финтрегер с REST‑API на FastAPI, БД SQLite/SQLAlchemy и фронтендом на React + Vite + TypeScript + Tailwind CSS.
+Возможности
+Управление счетами:
 
-Назначение
-Личный учёт финансов: счета, доходы/расходы и бюджеты. Бэкенд предоставляет JSON‑API поверх SQLite‑базы (слоистая архитектура: API‑роутеры → сервисный слой → ORM/БД). Фронт — дашборд‑интерфейс в современном финтех‑стиле: светлая тема, левый сайдбар, карточки метрик и списки транзакций.
+банковские карты, наличные, брокерские и любые другие типы;
 
-Статус проекта
+хранение маски номера карты (формат **** 1234), без сохранения полного номера.
 
-Бэкенд реализован: модели, сервисы, роутеры /accounts, /categories, /transactions, HTML‑view /db_view.
+Категории доходов и расходов:
 
-БД и миграции Alembic настроены.
+иерархия категорий (родитель → дочерние);
 
-Добавлен служебный скрипт очистки БД (scripts/clear_db.py), удаляющий все данные из таблиц transactions, budgets, accounts, categories.
+разделение на типы: доход / расход.
 
-Фронтенд: создан Vite‑проект в frontend/, настроен Tailwind. Реализован новый светлый layout с левым сайдбаром и верхним баром, страницы Dashboard, Accounts, Categories, Transactions.
+Транзакции:
 
-Страница Accounts переписана: вместо таблицы — сетка карточек счетов (название, тип, валюта, статус).
+доход, расход, перевод между счетами;
 
-В PyCharm настроены конфигурации backend (uvicorn, main:app) и frontend (npm run dev), а также compound‑конфигурация backend+frontend для одновременного запуска.
+сумма в минимальных единицах (копейки), валюта, дата/время, описание, категория.
 
-Структура бэкенда (корень репозитория)
+UI:
 
-main.py
+современный светлый интерфейс;
 
-создаёт приложение FastAPI (app = FastAPI(...));
+страница «Мои счета» с карточками (значок МИР/₽, название, маска номера, валюта, статус);
 
-подключает роутеры api.accounts, api.categories, api.transactions;
+отдельные страницы для категорий и транзакций (в разработке).
 
-настраивает Jinja2Templates(directory="templates");
+API:
 
-реализует /db_view для отображения таблиц БД как HTML.
+REST‑эндпоинты для счетов, категорий и транзакций;
 
-api/ — слой API (FastAPI‑роутеры + Pydantic‑схемы):
+автогенерация Swagger‑документации FastAPI по адресу /docs.
 
-api/accounts.py — роутер /accounts;
+Стек технологий
+Backend
 
-api/categories.py — роутер /categories;
+Python, FastAPI
 
-api/transactions.py — роутер /transactions;
+SQLAlchemy (ORM)
 
-api/schemas.py — Pydantic‑модели запросов/ответов.
+Alembic (миграции)
 
-services/ — бизнес‑логика (работа с Session, правила операций):
+SQLite (по умолчанию)
 
-services/accounts.py — операции над счетами;
+Frontend
 
-services/categories.py — операции над категориями;
+React
 
-services/transactions.py — доход, расход, перевод, знаки сумм и пара проводок для переводов.
+Vite
 
-models/ — ORM‑модели SQLAlchemy:
+TypeScript
 
-models/account.py — модель счёта;
+Tailwind CSS
 
-models/category.py — модель категории;
+Прочее
 
-models/transaction.py — модель транзакции;
+Monorepo: backend и frontend в одном репозитории
 
-models/budget.py — модель бюджета.
+Pydantic v2 для схем API
 
-db/ — инфраструктура БД:
+Структура проекта
+text
+MyFinance/
+  ├── main.py                # точка входа FastAPI-приложения
+  ├── alembic.ini            # конфигурация Alembic
+  ├── myfinance.db           # SQLite-база (dev)
+  ├── Project.txt            # заметки по проекту
 
-db/base.py — engine, SessionLocal, Base = declarative_base;
+  ├── api/                   # HTTP-ручки FastAPI
+  │   ├── __init__.py
+  │   ├── accounts.py        # /accounts: GET/POST
+  │   ├── categories.py      # /categories
+  │   ├── transactions.py    # /transactions
+  │   └── schemas.py         # Pydantic-схемы Account/Category/Transaction
 
-db/__init__.py — session_scope и зависимости для FastAPI.
+  ├── db/
+  │   ├── __init__.py
+  │   ├── base.py            # engine, SessionLocal, Base
+  │   └── session_scope.py   # контекстный менеджер для сессий
 
-migrations/ — Alembic‑миграции, включая init_schema.
+  ├── migrations/            # Alembic-миграции
+  │   ├── env.py
+  │   └── versions/
+  │       ├── a26138cee6f3_init_schema.py
+  │       └── 86d4aeea00b5_add_card_number_to_accounts.py
 
-templates/db_view.html — Jinja2‑шаблон для просмотра сырых данных по таблицам accounts, categories, transactions, budgets через /db_view.
+  ├── models/                # ORM-модели SQLAlchemy
+  │   ├── __init__.py
+  │   ├── account.py         # Account: счета
+  │   ├── category.py        # Category: категории
+  │   ├── transaction.py     # Transaction: проводки
+  │   └── budget.py          # Budget: бюджеты по категориям (задел на будущее)
 
-scripts/clear_db.py — консольный скрипт, полностью очищающий основные таблицы БД (без изменения схемы).
+  ├── services/              # бизнес-логика
+  │   ├── __init__.py
+  │   ├── accounts.py        # create_account, list_accounts и т.д.
+  │   ├── categories.py
+  │   └── transactions.py
 
-Схема базы данных (SQLite myfinance.db)
+  ├── templates/
+  │   └── dbview.html        # упрощённый HTML-вид для просмотра данных
 
-Основные таблицы: accounts, categories, transactions, budgets.
-(Описание полей остаётся как в предыдущей версии: accounts с name, type, currency, is_active; categories с name, type, parent_id; transactions с account_id, category_id, amount_minor, currency, dt, kind и пр.; budgets с периодом и amount_minor.)
+  ├── scripts/
+  │   ├── clear_db.py        # очистка данных в БД
+  │   └── check_category_sums.py
 
-API
+  └── frontend/              # React/Vite frontend
+      ├── index.html
+      ├── package.json
+      ├── vite.config.ts
+      ├── tailwind.config.cjs
+      ├── postcss.config.cjs
+      └── src/
+          ├── main.tsx
+          ├── App.tsx
+          ├── index.css
+          ├── api/
+          │   ├── client.ts        # apiGet/apiPost с baseURL на FastAPI
+          │   ├── accounts.ts      # типы Account, AccountCreate и функции get/create
+          │   ├── categories.ts
+          │   └── transactions.ts
+          ├── components/
+          │   └── layout/
+          │       └── MainLayout.tsx
+          └── pages/
+              ├── Dashboard/
+              │   └── index.tsx
+              ├── Accounts/
+              │   └── index.tsx    # карточки счетов с маской card_number
+              ├── Categories/
+              │   └── index.tsx
+              └── Transactions/
+                  └── index.tsx
+Доменная модель
+Accounts (счета)
+Таблица accounts:
 
-Схемы описаны в api/schemas.py (Pydantic v2). Основные роутеры: api/accounts.py, api/categories.py, api/transactions.py.
+id: int — идентификатор.
 
-/accounts
+name: str — название счёта (например, «Карта Tinkoff Андрей»).
 
-GET /accounts → список счетов (List[AccountOut]), использует list_accounts(active_only=False) в сервисе.
+type: str — тип ("card", "cash", и т.п.).
 
-POST /accounts → AccountOut (201), тело AccountCreate (name, type, currency); создаётся счёт с is_active=True.
+currency: str — код валюты (например, "RUB").
 
-/categories
+is_active: bool — активен ли счёт.
 
-GET /categories → список категорий (List[CategoryOut]), list_categories(type=None, active_only=False).
+card_number: str | None — маска номера карты в формате **** 1234, полный номер никогда не сохраняется.
 
-POST /categories → CategoryOut (201), тело CategoryCreate (name, type ∈ {"income","expense"}, parent_id).
+created_at: datetime — дата создания.
 
-/transactions
+Categories (категории)
+Таблица categories:
 
-GET /transactions → List[TransactionOut], все транзакции, отсортированные по id.
+id: int
 
-POST /transactions →
+name: str
 
-kind = "income" → одна транзакция дохода;
+type: str — "income" или "expense".
 
-kind = "expense" → одна транзакция расхода;
+parent_id: int | None — ссылка на родительскую категорию.
 
-kind = "transfer" → две транзакции (списание и зачисление) как List[TransactionOut].
+is_active: bool.
 
-Тело TransactionCreate: account_id, category_id | None, amount_minor > 0, dt | None, description | None, currency = "RUB", kind ∈ {"income","expense","transfer"}, to_account_id (обязателен для transfer).
+Transactions (транзакции)
+Таблица transactions:
 
-Логика по типу операции реализована в services/transactions.py.
+id: int
 
-Фронтенд (frontend/)
+account_id: int — счёт.
 
-Стек: Vite + React + TypeScript + Tailwind CSS.
+category_id: int | None — категория дохода/расхода.
 
-Основные файлы:
+amount_minor: int — сумма в минимальных единицах (копейки).
 
-frontend/package.json — скрипты dev, build, preview.
+currency: str — код валюты.
 
-frontend/vite.config.ts — конфигурация Vite.
+dt: datetime — дата/время.
 
-frontend/tailwind.config.cjs, frontend/postcss.config.cjs — настройка Tailwind и PostCSS.
+description: str | None — описание.
 
-frontend/src/main.tsx — входной файл React, обёрнутый в BrowserRouter.
+transfer_group_id: int | None — группировка для переводов.
 
-frontend/src/App.tsx — маршрутизация и подключение MainLayout.
+created_at: datetime.
 
-Структура исходников:
+API (кратко)
+Примеры основных ручек (полное описание смотри в /docs):
 
-src/api/ — функции для работы с FastAPI:
+Счета
+GET /accounts
+Возвращает список счетов AccountOut[].
 
-client.ts — общий HTTP‑клиент (apiGet, apiPost, API_BASE_URL = "http://localhost:8000");
+POST /accounts
+Создаёт счёт.
 
-accounts.ts — getAccounts, createAccount → /accounts;
+Тело запроса (AccountCreate):
 
-(план) categories.ts → /categories, transactions.ts → /transactions.
+text
+{
+  "name": "Карта Tinkoff Андрей",
+  "type": "card",
+  "currency": "RUB",
+  "card_number": "5536 91- -  - - - -  1234"   // на бэке превратится в "**** 1234"
+}
+Ответ (AccountOut):
 
-src/components/ — общие компоненты.
+text
+{
+  "id": 1,
+  "name": "Карта Tinkoff Андрей",
+  "type": "card",
+  "currency": "RUB",
+  "is_active": true,
+  "card_number": "**** 1234",
+  "created_at": "2026-01-25T08:30:00"
+}
 
-components/layout/MainLayout.tsx — новый основной layout: светлый левый сайдбар, верхний бар внутри контента, область страниц.
+Категории и транзакции реализованы в аналогичном стиле (CategoryCreate/Out, TransactionCreate/Out).
 
-src/pages/ — страницы:
+Быстрый старт (локальная разработка)
+Клонировать репозиторий
 
-Dashboard/index.tsx — заглушка для дашборда (будут карточки метрик и графики).
+bash
+git clone https://github.com/andrewarb-ops/MyFinance.git
+cd MyFinance
+Backend
 
-Accounts/index.tsx — сетка карточек счетов. При монтировании вызывает getAccounts() и отображает для каждого счёта: name, type, currency, is_active, id.
+bash
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
 
-Categories/index.tsx — заглушка для списка категорий.
+alembic upgrade head      # применить миграции
 
-Transactions/index.tsx — заглушка для списка транзакций.
+uvicorn main:app --reload
+FastAPI будет доступен по адресу http://localhost:8000, Swagger — http://localhost:8000/docs.
 
-src/index.css — базовые стили + подключение Tailwind (светлая тема).
+Frontend
 
-Роутинг (React Router):
+bash
+cd frontend
+npm install
+npm run dev
+Интерфейс доступен по адресу http://localhost:5173.
 
-/ → редирект на /dashboard;
+Как вносить изменения в модель данных
+Меняем ORM‑модель в models/ (например, добавляем поле в Account).
 
-/dashboard → DashboardPage;
+Создаём Alembic‑миграцию:
 
-/accounts → AccountsPage;
+bash
+alembic revision -m "описание изменения"
+# правим upgrade()/downgrade()
+alembic upgrade head
+Обновляем Pydantic‑схемы в api/schemas.py.
 
-/categories → CategoriesPage;
+Обновляем сервисы (services/*.py) и обработчики в api/*.py.
 
-/transactions → TransactionsPage.
+Обновляем типы и API‑клиенты на фронте (frontend/src/api/*.ts).
 
-Все страницы рендерятся внутри MainLayout.
+Обновляем компоненты React/страницы, если нужно.
 
-Визуальная концепция
+Планы по развитию
+Страница деталей счёта с историей транзакций и быстрыми фильтрами.
 
-Светлый финтех‑дашборд: левый сайдбар, верхняя панель, контент в виде карточек и списков.
+Гибкая аналитика по категориям (диаграммы, топ‑категории за период).
 
-Accounts — карточки счетов с плавными градиентами в духе банковских приложений.
+Бюджеты по категориям и уведомления о перерасходе.
 
-План: аналогично оформить Dashboard (карточки «Рабочий баланс», «Статус накоплений», краткая сводка транзакций) и далее страницы категорий и транзакций.
-
-TODO (ближайшие шаги)
-
-Фронтенд
-
-Accounts
-
-Добавить модальное окно «Новый счёт» поверх POST /accounts (поля: name, type, currency).
-
-После успешного создания обновлять список без перезагрузки страницы.
-
-Обработать ошибки API (валидация, сетевые ошибки) и показывать их в UI.
-
-Categories
-
-Реализовать модуль src/api/categories.ts (getCategories, createCategory → /categories).
-
-Сделать список/карточки категорий на странице Categories.
-
-Добавить форму создания категории (name, type, parent_id).
-
-Подготовить основу для отображения категорий деревом (иерархия по parent_id).
-
-Transactions
-
-Реализовать модуль src/api/transactions.ts (getTransactions, createTransaction → /transactions).
-
-Сделать страницу транзакций (список, базовые колонки: дата, счёт, категория, сумма, тип).
-
-Добавить фильтры по дате, счёту, категории, типу операции (income/expense/transfer).
-
-Реализовать форму создания транзакций с переключателем вида операции и выбором счёта/счётов.
-
-Dashboard
-
-Добавить запросы для агрегированных данных (баланс по счетам, суммы доходов/расходов за период).
-
-Нарисовать карточки метрик и один‑два графика (например, расходы по дням и распределение по категориям).
-
-Бэкенд
-
-Расширить GET /transactions параметрами фильтрации (дата от/до, account_id, category_id, kind).
-
-Добавить простые агрегирующие эндпоинты для дашборда (баланс по счетам, суммы доход/расход за период).
-
-Инфраструктура
-
-Поддерживать в актуальном состоянии конфигурацию backend+frontend в PyCharm.
-
-Добавить README по запуску проекта (uvicorn + npm run dev / compound‑конфигурация).
+Импорт выписок из банков/CSV.

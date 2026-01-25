@@ -24,5 +24,6 @@ def create_account(data: AccountCreate):
         type_=data.type,
         currency=data.currency,
         is_active=True,
+        card_number=data.card_number,  # новое поле
     )
     return acc_dto

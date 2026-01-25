@@ -6,19 +6,21 @@ export interface Account {
   type: string;
   currency: string;
   is_active: boolean;
-  created_at: string;
+  card_number?: string | null;
+  created_at: string | null;
 }
 
 export interface AccountCreate {
   name: string;
   type: string;
   currency: string;
+  card_number?: string | null;
 }
 
 export function getAccounts(): Promise<Account[]> {
-  return apiGet<Account[]>("/accounts");
+  return apiGet("/accounts");
 }
 
 export function createAccount(data: AccountCreate): Promise<Account> {
-  return apiPost<AccountCreate, Account>("/accounts", data);
+  return apiPost("/accounts", data);
 }

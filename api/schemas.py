@@ -1,19 +1,23 @@
 from typing import Optional
 from datetime import datetime
+
 from pydantic import BaseModel, field_validator
 from pydantic import ConfigDict  # pydantic v2
 
+
 # ---------- Create-модели ----------
+
 
 class AccountCreate(BaseModel):
     name: str
     type: str
     currency: str = "RUB"
+    card_number: Optional[str] = None  # новый атрибут
 
 
 class CategoryCreate(BaseModel):
     name: str
-    type: str      # "income" / "expense"
+    type: str  # "income" / "expense"
     parent_id: Optional[int] = None
 
     @field_validator("type")
@@ -31,7 +35,7 @@ class TransactionCreate(BaseModel):
     dt: Optional[datetime] = None
     description: Optional[str] = None
     currency: str = "RUB"
-    kind: str                     # "income" / "expense" / "transfer"
+    kind: str  # "income" / "expense" / "transfer"
     to_account_id: Optional[int] = None
 
     @field_validator("amount_minor")
@@ -49,12 +53,16 @@ class TransactionCreate(BaseModel):
         return v
 
 
+# ---------- Out-модели ----------
+
+
 class AccountOut(BaseModel):
     id: int
     name: str
     type: str
     currency: str
     is_active: bool
+    card_number: Optional[str] = None  # новый атрибут
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -63,7 +71,7 @@ class AccountOut(BaseModel):
 class CategoryOut(BaseModel):
     id: int
     name: str
-    type: str          # "income" / "expense"
+    type: str  # "income" / "expense"
     parent_id: Optional[int] = None
     is_active: bool
 
