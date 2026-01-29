@@ -98,3 +98,16 @@ class TransactionOut(BaseModel):
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    type: Optional[str] = None  # "income" / "expense"
+    parent_id: Optional[int] = None
+    is_active: Optional[bool] = None
+
+    @field_validator("type")
+    @classmethod
+    def validate_type(cls, v: str | None) -> str | None:
+        if v is not None and v not in {"income", "expense"}:
+            raise ValueError("type must be 'income' or 'expense'")
+        return v

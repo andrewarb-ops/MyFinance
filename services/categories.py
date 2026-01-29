@@ -86,3 +86,42 @@ def deactivate_category(category_id: int) -> bool:
         cat.is_active = False
         session.add(cat)
         return True
+
+
+def update_category(
+    category_id: int,
+    *,
+    name: Optional[str] = None,
+    type_: Optional[str] = None,  # "income" / "expense"
+    parent_id: Optional[int] = None,
+    is_active: Optional[bool] = None,
+) -> Optional[CategoryDTO]:
+    """Обновить категорию по id, изменяя только переданные поля."""
+
+    if type_ is not None and type_ not in ("income", "expense"):
+        raise ValueError("type_ must be 'income' or 'expense'")
+
+    with session_scope() as session:
+        cat = (
+            session.query(Category)
+            .filter(Category.id == category_id)
+            .first()
+        )
+
+        if cat is None:
+            return None
+
+        if name is not None:
+            cat.name = name
+        if type_ is not None:
+            cat.type = type_
+        if parent_id is not None:
+            cat.parent_id = parent_id
+        if is_active is not None:
+            cat.is_active = is_active
+
+        session.add(cat)
+        session.flush()
+        session.refresh(cat)
+
+        return _to_dto(cat)

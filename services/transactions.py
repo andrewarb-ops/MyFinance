@@ -167,3 +167,25 @@ def get_account_balance(account_id: int, currency: str = "RUB") -> int:
             .scalar()
         )
         return int(total)
+
+
+def delete_transaction(transaction_id: int) -> bool:
+    """
+    Удаляет одну транзакцию.
+    Если это часть перевода (есть transfer_group_id),
+    удаляет обе записи перевода.
+    """
+    with session_scope() as session:
+        tx = session.query(Transaction).filter(Transaction.id == transaction_id).first()
+        if not tx:
+            return False
+
+        if tx.transfer_group_id is not None:
+            session.query(Transaction).filter(
+                Transaction.transfer_group_id == tx.transfer_group_id
+            ).delete(synchronize_session=False)
+        else:
+            session.delete(tx)
+
+        session.commit()
+        return True
