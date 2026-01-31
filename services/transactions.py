@@ -7,7 +7,6 @@ from typing import List, Optional, Literal
 from db import session_scope
 from models.transaction import Transaction
 from models.account import Account
-from models.category import Category
 
 
 MoneySign = Literal["income", "expense"]
@@ -54,17 +53,7 @@ def add_income(
 
     with session_scope() as session:
         # проверим, что счёт существует
-        account = session.query(Account).filter(Account.id == account_id).first()
-        if account is None:
-            raise ValueError(f"Account with id {account_id} not found")
-
-        # проверим, что категория существует, если указана
-        if category_id is not None:
-            category = session.query(Category).filter(Category.id == category_id).first()
-            if category is None:
-                raise ValueError(f"Category with id {category_id} not found")
-            if category.type != "income":
-                raise ValueError(f"Category {category_id} is not an income category")
+        session.query(Account).filter(Account.id == account_id).one()
 
         tx = Transaction(
             account_id=account_id,
@@ -82,7 +71,7 @@ def add_income(
 
 def add_expense(
     account_id: int,
-    category_id: Optional[int] = None,
+    category_id: int,
     amount_minor: int,
     dt: Optional[datetime] = None,
     description: Optional[str] = None,
@@ -95,17 +84,7 @@ def add_expense(
     dt = dt or datetime.now()
 
     with session_scope() as session:
-        account = session.query(Account).filter(Account.id == account_id).first()
-        if account is None:
-            raise ValueError(f"Account with id {account_id} not found")
-
-        # проверим, что категория существует, если указана
-        if category_id is not None:
-            category = session.query(Category).filter(Category.id == category_id).first()
-            if category is None:
-                raise ValueError(f"Category with id {category_id} not found")
-            if category.type != "expense":
-                raise ValueError(f"Category {category_id} is not an expense category")
+        session.query(Account).filter(Account.id == account_id).one()
 
         tx = Transaction(
             account_id=account_id,
@@ -137,13 +116,8 @@ def add_transfer(
 
     with session_scope() as session:
         # проверим, что оба счета существуют
-        from_account = session.query(Account).filter(Account.id == from_account_id).first()
-        if from_account is None:
-            raise ValueError(f"Account with id {from_account_id} not found")
-        
-        to_account = session.query(Account).filter(Account.id == to_account_id).first()
-        if to_account is None:
-            raise ValueError(f"Account with id {to_account_id} not found")
+        session.query(Account).filter(Account.id == from_account_id).one()
+        session.query(Account).filter(Account.id == to_account_id).one()
 
         # создаём списание
         out_tx = Transaction(
@@ -177,13 +151,6 @@ def add_transfer(
         session.refresh(in_tx)
 
         return [_to_dto(out_tx), _to_dto(in_tx)]
-
-
-def list_transactions() -> List[TransactionDTO]:
-    """Получить список всех транзакций."""
-    with session_scope() as session:
-        txs = session.query(Transaction).order_by(Transaction.id).all()
-        return [_to_dto(tx) for tx in txs]
 
 
 def get_account_balance(account_id: int, currency: str = "RUB") -> int:
@@ -220,4 +187,5 @@ def delete_transaction(transaction_id: int) -> bool:
         else:
             session.delete(tx)
 
+        session.commit()
         return True
