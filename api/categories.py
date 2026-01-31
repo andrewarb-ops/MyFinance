@@ -28,13 +28,17 @@ def read_categories(
 
 @router.post("", response_model=CategoryOut, status_code=201)
 def create_category(data: CategoryCreate):
-    cat_dto = svc_create_category(
-        name=data.name,
-        type_=data.type,
-        parent_id=data.parent_id,
-        is_active=True,
-    )
-    return cat_dto
+    """Создать новую категорию."""
+    try:
+        cat_dto = svc_create_category(
+            name=data.name,
+            type_=data.type,
+            parent_id=data.parent_id,
+            is_active=True,
+        )
+        return cat_dto
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/{category_id}", response_model=CategoryOut)
 def read_category(category_id: int):
@@ -44,18 +48,22 @@ def read_category(category_id: int):
     return cat
 
 
-@router.post("/{category_id}", response_model=CategoryOut)
+@router.patch("/{category_id}", response_model=CategoryOut)
 def update_category_api(category_id: int, data: CategoryUpdate):
-    cat = svc_update_category(
-        category_id=category_id,
-        name=data.name,
-        type_=data.type,
-        parent_id=data.parent_id,
-        is_active=data.is_active,
-    )
-    if cat is None:
-        raise HTTPException(status_code=404, detail="Category not found")
-    return cat
+    """Обновить категорию."""
+    try:
+        cat = svc_update_category(
+            category_id=category_id,
+            name=data.name,
+            type_=data.type,
+            parent_id=data.parent_id,
+            is_active=data.is_active,
+        )
+        if cat is None:
+            raise HTTPException(status_code=404, detail="Category not found")
+        return cat
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete("/{category_id}")
