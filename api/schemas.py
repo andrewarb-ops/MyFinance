@@ -62,6 +62,10 @@ class AccountUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+class TransactionUpdate(BaseModel):
+    category_id: Optional[int] = None
+    description: Optional[str] = None
+
 # ---------- Out-модели ----------
 
 class AccountOut(BaseModel):
@@ -89,6 +93,7 @@ class CategoryOut(BaseModel):
 class TransactionOut(BaseModel):
     id: int
     account_id: int
+    kind: str  # "income" / "expense" / "transfer"
     category_id: Optional[int] = None
     amount_minor: int
     currency: str
@@ -98,6 +103,7 @@ class TransactionOut(BaseModel):
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class CategoryUpdate(BaseModel):
     name: Optional[str] = None
