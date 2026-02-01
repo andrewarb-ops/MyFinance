@@ -54,6 +54,12 @@ class TransactionCreate(BaseModel):
 
 # ---------- Update-модели ----------
 
+class TransactionUpdate(BaseModel):
+    category_id: Optional[int] = None
+    description: Optional[str] = None
+
+# ---------- Update-модели ----------
+
 class AccountUpdate(BaseModel):
     name: Optional[str] = None
     type: Optional[str] = None
@@ -96,7 +102,7 @@ class TransactionOut(BaseModel):
     description: Optional[str] = None
     transfer_group_id: Optional[int] = None
     created_at: Optional[datetime] = None
-
+    kind: str  # "income" / "expense" / "transfer"
     model_config = ConfigDict(from_attributes=True)
 
 class CategoryUpdate(BaseModel):
