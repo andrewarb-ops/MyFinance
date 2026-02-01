@@ -39,8 +39,9 @@ def _to_dto(tx: Transaction) -> TransactionDTO:
 
 def add_income(
     account_id: int,
-    category_id: Optional[int] = None,
+
     amount_minor: int,
+    category_id: Optional[int] = None,
     dt: Optional[datetime] = None,
     description: Optional[str] = None,
     currency: str = "RUB",
