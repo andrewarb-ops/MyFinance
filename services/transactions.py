@@ -39,9 +39,8 @@ def _to_dto(tx: Transaction) -> TransactionDTO:
 
 def add_income(
     account_id: int,
-
-    amount_minor: int,
     category_id: Optional[int] = None,
+    amount_minor: int = 0,
     dt: Optional[datetime] = None,
     description: Optional[str] = None,
     currency: str = "RUB",
@@ -190,3 +189,43 @@ def delete_transaction(transaction_id: int) -> bool:
 
         session.commit()
         return True
+
+
+def update_transaction(
+    transaction_id: int,
+    category_id: Optional[int] = None,
+    description: Optional[str] = None,
+) -> Optional[TransactionDTO]:
+    """
+    Обновляет одну транзакцию.
+    Если это часть перевода (есть transfer_group_id),
+    обновляет обе записи перевода одинаково.
+    Сейчас меняем только category_id и description.
+    """
+    with session_scope() as session:
+        tx = session.query(Transaction).filter(Transaction.id == transaction_id).first()
+        if not tx:
+            return None
+
+        if tx.transfer_group_id is not None:
+            group_txs = (
+                session.query(Transaction)
+                .filter(Transaction.transfer_group_id == tx.transfer_group_id)
+                .all()
+            )
+            for t in group_txs:
+                if category_id is not None:
+                    t.category_id = category_id
+                if description is not None:
+                    t.description = description
+            session.flush()
+            session.refresh(tx)
+            return _to_dto(tx)
+        else:
+            if category_id is not None:
+                tx.category_id = category_id
+            if description is not None:
+                tx.description = description
+            session.flush()
+            session.refresh(tx)
+            return _to_dto(tx)
