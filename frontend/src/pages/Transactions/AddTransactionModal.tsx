@@ -13,6 +13,30 @@ import {
 
 type TransactionType = "expense" | "income" | "transfer";
 
+const CATEGORY_ICONS: Record<string, string> = {
+  "Зарплата": "💰",
+  "Процент по инвестициям": "📈",
+  "Продукты": "🍔",
+  "продукты": "🍔",
+  "Кафе и рестораны (чад кутежа)": "🥂",
+  "Транспорт": "🚕",
+  "ЖКУ (Счетчики)": "💡",
+  "Связь и интернет": "📱",
+  "Подписки и сервисы": "🎬",
+  "Здоровье и спорт": "💪",
+  "Одежда и обувь": "👟",
+  "Дом и быт": "🏠",
+  "Развлечения и хобби": "🎮",
+  "Подарки": "🎁",
+  "Образование": "📚",
+  "Авто": "🚗",
+  "Прочее": "📦",
+  "Аренда": "🔑",
+  "Лекарства и медицина": "💊",
+};
+
+const getCategoryIcon = (name: string) => CATEGORY_ICONS[name] || "🏷️";
+
 interface AddTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -28,9 +52,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const isEdit = !!initialTransaction;
+
   const [type, setType] = useState<TransactionType>("expense");
   const [amount, setAmount] = useState<string>("");
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState<string>("");
 
   const [selectedAccountFrom, setSelectedAccountFrom] =
     useState<number | null>(null);
@@ -41,9 +67,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  // загрузка счетов/категорий и проставление значений при открытии
+  // Первичная загрузка: счета + начальные значения, категории под initialTransaction
   useEffect(() => {
     if (!isOpen) return;
 
@@ -54,14 +80,22 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
         if (initialTransaction) {
           // режим редактирования
-          setType(initialTransaction.kind);
+          setType(initialTransaction.kind as TransactionType);
           setAmount(
             (Math.abs(initialTransaction.amount_minor) / 100).toString()
           );
           setDescription(initialTransaction.description ?? "");
           setSelectedAccountFrom(initialTransaction.account_id);
           setSelectedAccountTo(initialTransaction.account_id);
-          setSelectedCategory(initialTransaction.category_id);
+          setSelectedCategory(initialTransaction.category_id ?? null);
+
+          if (initialTransaction.kind !== "transfer") {
+            const cats = await getCategories({
+              type:
+                initialTransaction.kind === "income" ? "income" : "expense",
+            });
+            setCategories(cats);
+          }
         } else {
           // режим создания
           setType("expense");
@@ -72,23 +106,38 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             setSelectedAccountTo(accs[0].id);
           }
           setSelectedCategory(null);
-        }
 
-        const categoryType: "income" | "expense" =
-          (initialTransaction?.kind ?? "expense") === "income"
-            ? "income"
-            : "expense";
-
-        const cats = await getCategories({ type: categoryType });
-        setCategories(cats);
-        if (!initialTransaction && cats.length) {
-          setSelectedCategory(cats[0].id);
+          // стартовые категории под расход
+          const cats = await getCategories({ type: "expense" });
+          setCategories(cats);
+          if (cats.length) {
+            setSelectedCategory(cats[0].id);
+          }
         }
       } catch (e) {
         console.error(e);
       }
     })();
   }, [isOpen, initialTransaction]);
+
+  // Подгрузка категорий при смене типа в режиме создания
+  useEffect(() => {
+    if (!isOpen || isEdit || type === "transfer") return;
+
+    (async () => {
+      try {
+        const cats = await getCategories({
+          type: type === "income" ? "income" : "expense",
+        });
+        setCategories(cats);
+        if (cats.length) {
+          setSelectedCategory(cats[0].id);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+  }, [type, isOpen, isEdit]);
 
   const typeColors: Record<TransactionType, string> = {
     expense: "bg-red-500 hover:bg-red-600",
@@ -131,15 +180,27 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       setLoading(true);
 
       if (initialTransaction) {
-        // редактирование: пока меняем только категорию и комментарий
+        // редактирование: меняем категорию, комментарий и сумму
         await updateTransaction(initialTransaction.id, {
           category_id: selectedCategory ?? undefined,
           description: description || undefined,
+          amount_minor: amountMinor, // новая сумма в копейках
         });
       } else {
         // создание новой
         if (type === "transfer") {
-          console.warn("Transfer is not implemented yet");
+          if (!selectedAccountFrom || !selectedAccountTo) return;
+
+          await createTransaction({
+            account_id: selectedAccountFrom,
+            to_account_id: selectedAccountTo,
+            category_id: null,
+            amount_minor: amountMinor,
+            currency,
+            dt: new Date().toISOString(),
+            description: description || undefined,
+            kind: "transfer",
+          });
         } else {
           await createTransaction({
             account_id: accountId,
@@ -181,22 +242,25 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
           <div className="flex bg-gray-100 p-1 rounded-lg">
             <button
               type="button"
-              onClick={() => setType("expense")}
+              onClick={() => !isEdit && setType("expense")}
               className={activeTabClass("expense")}
+              disabled={isEdit}
             >
               Расход
             </button>
             <button
               type="button"
-              onClick={() => setType("income")}
+              onClick={() => !isEdit && setType("income")}
               className={activeTabClass("income")}
+              disabled={isEdit}
             >
               Доход
             </button>
             <button
               type="button"
-              onClick={() => setType("transfer")}
+              onClick={() => !isEdit && setType("transfer")}
               className={activeTabClass("transfer")}
+              disabled={isEdit}
             >
               Перевод
             </button>
@@ -273,29 +337,35 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
               <label className="block text-xs font-medium text-gray-500 uppercase mb-1">
                 Категория
               </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  className="p-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-purple-50 hover:border-purple-200 hover:text-purple-700 transition-colors"
-                >
-                  🍔 Продукты
-                </button>
-                <button
-                  type="button"
-                  className="p-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-purple-50 hover:border-purple-200 hover:text-purple-700 transition-colors"
-                >
-                  🚕 Транспорт
-                </button>
+
+              {/* Быстрые категории */}
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                {categories.slice(0, 4).map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`p-2 border rounded-lg text-sm transition-colors text-left truncate ${
+                      selectedCategory === cat.id
+                        ? "bg-purple-100 border-purple-300 text-purple-800 font-medium"
+                        : "border-gray-200 text-gray-600 hover:bg-purple-50 hover:border-purple-200 hover:text-purple-700"
+                    }`}
+                  >
+                    {getCategoryIcon(cat.name)} {cat.name}
+                  </button>
+                ))}
               </div>
+
+              {/* Полный список */}
               <select
-                className="mt-2 w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-shadow"
+                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-shadow"
                 value={selectedCategory ?? ""}
                 onChange={(e) => setSelectedCategory(Number(e.target.value))}
               >
-                <option value="">Все категории...</option>
+                <option value="">Выберите категорию...</option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
-                    {cat.name}
+                    {getCategoryIcon(cat.name)} {cat.name}
                   </option>
                 ))}
               </select>

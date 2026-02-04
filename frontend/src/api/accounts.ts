@@ -25,21 +25,31 @@ export interface AccountUpdate {
   is_active?: boolean;
 }
 
+export interface AccountBalance {
+  account_id: number;
+  balance_minor: number;
+  currency: string;
+}
+
 export function getAccounts(): Promise<Account[]> {
-  return apiGet("/accounts");
+  return apiGet<Account[]>("/accounts");
 }
 
 export function createAccount(data: AccountCreate): Promise<Account> {
-  return apiPost("/accounts", data);
+  return apiPost<AccountCreate, Account>("/accounts", data);
 }
 
 export function updateAccount(
   id: number,
   data: AccountUpdate
 ): Promise<Account> {
-  return apiPatch(`/accounts/${id}`, data);
+  return apiPatch<AccountUpdate, Account>(`/accounts/${id}`, data);
 }
 
 export function deleteAccount(id: number): Promise<void> {
   return apiDelete(`/accounts/${id}`);
+}
+
+export function getAccountBalance(id: number): Promise<AccountBalance> {
+  return apiGet<AccountBalance>(`/accounts/${id}/balance`);
 }

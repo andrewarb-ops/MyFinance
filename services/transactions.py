@@ -153,19 +153,19 @@ def add_transfer(
         return [_to_dto(out_tx), _to_dto(in_tx)]
 
 
-def get_account_balance(account_id: int, currency: str = "RUB") -> int:
+def get_account_balance(account_id: int, currency: str | None = None) -> int:
     """Текущий баланс счёта в копейках."""
     from sqlalchemy import func
 
     with session_scope() as session:
-        total = (
-            session.query(func.coalesce(func.sum(Transaction.amount_minor), 0))
-            .filter(
-                Transaction.account_id == account_id,
-                Transaction.currency == currency,
-            )
-            .scalar()
+        q = session.query(func.coalesce(func.sum(Transaction.amount_minor), 0)).filter(
+            Transaction.account_id == account_id,
         )
+        # Если явно передали валюту — учитываем, иначе суммируем всё по счёту
+        if currency is not None:
+            q = q.filter(Transaction.currency == currency)
+
+        total = q.scalar()
         return int(total)
 
 
@@ -195,17 +195,36 @@ def update_transaction(
     transaction_id: int,
     category_id: Optional[int] = None,
     description: Optional[str] = None,
+    amount_minor: Optional[int] = None,
 ) -> Optional[TransactionDTO]:
     """
     Обновляет одну транзакцию.
     Если это часть перевода (есть transfer_group_id),
     обновляет обе записи перевода одинаково.
-    Сейчас меняем только category_id и description.
+    Меняем category_id, description и, при необходимости, сумму.
+    Для суммы:
+      - доход: amount_minor > 0
+      - расход: amount_minor < 0 (храним со знаком минус)
+      - перевод: две записи, -amount_minor и +amount_minor.
     """
     with session_scope() as session:
         tx = session.query(Transaction).filter(Transaction.id == transaction_id).first()
         if not tx:
             return None
+
+        # helper для обновления суммы с правильным знаком
+        def apply_amount(t: Transaction) -> None:
+            nonlocal amount_minor
+            if amount_minor is None:
+                return
+            if amount_minor <= 0:
+                raise ValueError("amount_minor for update must be > 0")
+            if t.transfer_group_id is not None:
+                # для переводов знак определяем по текущему знаку записи
+                t.amount_minor = -amount_minor if t.amount_minor < 0 else amount_minor
+            else:
+                # обычная операция: знак берём по текущему amount_minor
+                t.amount_minor = -amount_minor if t.amount_minor < 0 else amount_minor
 
         if tx.transfer_group_id is not None:
             group_txs = (
@@ -218,6 +237,7 @@ def update_transaction(
                     t.category_id = category_id
                 if description is not None:
                     t.description = description
+                apply_amount(t)
             session.flush()
             session.refresh(tx)
             return _to_dto(tx)
@@ -226,6 +246,7 @@ def update_transaction(
                 tx.category_id = category_id
             if description is not None:
                 tx.description = description
+            apply_amount(tx)
             session.flush()
             session.refresh(tx)
             return _to_dto(tx)

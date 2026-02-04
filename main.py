@@ -1,19 +1,17 @@
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-
 from api.accounts import router as accounts_router
 from api.categories import router as categories_router
+from api.dashboard import router as dashboard_router
 from api.transactions import router as transactions_router
-
 from db import session_scope
 from models.account import Account
+from models.budget import Budget
 from models.category import Category
 from models.transaction import Transaction
-from models.budget import Budget
 
-
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="myFinance API",
@@ -25,6 +23,7 @@ origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -32,9 +31,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 app.include_router(accounts_router)
 app.include_router(categories_router)
 app.include_router(transactions_router)
+app.include_router(dashboard_router)
 
 templates = Jinja2Templates(directory="templates")
 
@@ -87,10 +88,22 @@ def budget_to_dict(b: Budget) -> dict:
 @app.get("/db_view", response_class=HTMLResponse)
 def db_view(request: Request):
     with session_scope() as db:
-        accounts = [account_to_dict(a) for a in db.query(Account).order_by(Account.id)]
-        categories = [category_to_dict(c) for c in db.query(Category).order_by(Category.id)]
-        transactions = [transaction_to_dict(t) for t in db.query(Transaction).order_by(Transaction.id)]
-        budgets = [budget_to_dict(b) for b in db.query(Budget).order_by(Budget.id)]
+        accounts = [
+            account_to_dict(a)
+            for a in db.query(Account).order_by(Account.id)
+        ]
+        categories = [
+            category_to_dict(c)
+            for c in db.query(Category).order_by(Category.id)
+        ]
+        transactions = [
+            transaction_to_dict(t)
+            for t in db.query(Transaction).order_by(Transaction.id)
+        ]
+        budgets = [
+            budget_to_dict(b)
+            for b in db.query(Budget).order_by(Budget.id)
+        ]
 
     return templates.TemplateResponse(
         "db_view.html",

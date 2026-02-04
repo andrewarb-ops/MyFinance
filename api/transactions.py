@@ -141,13 +141,14 @@ def create_transaction(data: TransactionCreate):
 @router.patch("/{transaction_id}", response_model=TransactionOut)
 def patch_transaction(transaction_id: int, data: TransactionUpdate):
     """
-    Обновляет категорию и/или описание транзакции.
+    Обновляет категорию, описание и/или сумму транзакции.
     Логика обновления (включая переводы) реализована в сервисе.
     """
     tx = svc_update_transaction(
         transaction_id=transaction_id,
         category_id=data.category_id,
         description=data.description,
+        amount_minor=data.amount_minor,  # 👈 прокидываем новую сумму
     )
     if tx is None:
         raise HTTPException(status_code=404, detail="Transaction not found")
@@ -165,7 +166,6 @@ def patch_transaction(transaction_id: int, data: TransactionUpdate):
         "kind": _detect_kind(tx.amount_minor, tx.transfer_group_id),
     }
     return TransactionOut.model_validate(row)
-
 
 @router.delete("/{transaction_id}", status_code=204)
 def delete_transaction(transaction_id: int):

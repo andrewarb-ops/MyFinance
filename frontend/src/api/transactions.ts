@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPatch, apiDelete } from "../api/client";
+import { apiGet, apiPost, apiPatch, apiDelete } from "./client.ts";
 
 export interface Transaction {
   id: number;
@@ -8,22 +8,24 @@ export interface Transaction {
   currency: string;
   dt: string;
   description: string | null;
-  kind: "income" | "expense";
+  kind: "income" | "expense" | "transfer";
 }
 
 export interface TransactionCreate {
   account_id: number;
+  to_account_id?: number | null;
   category_id?: number | null;
   amount_minor: number;
   currency: string;
   dt: string;
   description?: string | null;
-  kind: "income" | "expense";
+  kind: "income" | "expense" | "transfer";
 }
 
 export interface TransactionUpdate {
   category_id?: number | null;
   description?: string | null;
+  amount_minor?: number; // новая сумма в копейках
 }
 
 export async function getTransactions(): Promise<Transaction[]> {

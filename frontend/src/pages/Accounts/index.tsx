@@ -1,20 +1,27 @@
 ﻿import React, {useEffect, useState} from "react";
 import MirLogo from "../../assets/Mir-logo.SVG.svg";
-import {getAccounts, deleteAccount} from "../../api/accounts";
-import type {Account} from "../../api/accounts";
+import {
+    getAccounts,
+    deleteAccount,
+    getAccountBalance,
+} from "../../api/accounts";
+import type {Account, AccountBalance} from "../../api/accounts";
 
 import CreateAccountModal from "./CreateAccountModal";
 import EditAccountModal from "./EditAccountModal";
 
 const AccountsPage: React.FC = () => {
     const [accounts, setAccounts] = useState<Account[]>([]);
+    const [balances, setBalances] = useState<Record<number, AccountBalance>>({});
     const [loading, setLoading] = useState(true);
+    const [balancesLoading, setBalancesLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [accountToEdit, setAccountToEdit] = useState<Account | null>(null);
 
+    // загрузка счетов
     useEffect(() => {
         setLoading(true);
         getAccounts()
@@ -29,14 +36,35 @@ const AccountsPage: React.FC = () => {
             .finally(() => setLoading(false));
     }, []);
 
+    // загрузка балансов после получения счетов
+    useEffect(() => {
+        if (!accounts.length) return;
+
+        setBalancesLoading(true);
+        (async () => {
+            try {
+                const results = await Promise.all(
+                    accounts.map((acc) => getAccountBalance(acc.id))
+                );
+                const map: Record<number, AccountBalance> = {};
+                for (const b of results) {
+                    map[b.account_id] = b;
+                }
+                setBalances(map);
+            } catch (e) {
+                console.error("Failed to load balances", e);
+            } finally {
+                setBalancesLoading(false);
+            }
+        })();
+    }, [accounts]);
+
     const handleCreated = (acc: Account) => {
         setAccounts((prev) => [...prev, acc]);
     };
 
     const handleUpdated = (acc: Account) => {
-        setAccounts((prev) =>
-            prev.map((a) => (a.id === acc.id ? acc : a))
-        );
+        setAccounts((prev) => prev.map((a) => (a.id === acc.id ? acc : a)));
     };
 
     const openEdit = (acc: Account) => {
@@ -66,8 +94,14 @@ const AccountsPage: React.FC = () => {
         }
     };
 
+    const formatMoney = (minor: number, currency: string) => {
+        return `${(minor / 100).toFixed(2)} ${currency}`;
+    };
+
     if (loading) {
-        return <div className="p-6 text-sm text-slate-600">Загружаю счета...</div>;
+        return (
+            <div className="p-6 text-sm text-slate-600">Загружаю счета...</div>
+        );
     }
 
     if (error) {
@@ -105,75 +139,91 @@ const AccountsPage: React.FC = () => {
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {accounts.map((acc) => (
-                        <div
-                            key={acc.id}
-                            className={
-                                "flex items-center justify-between rounded-xl p-4 shadow-sm " +
-                                (acc.is_active ? "bg-white" : "bg-slate-100 opacity-70")
-                            }
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="flex h-10 w-10 items-center justify-center">
-                                    {acc.type === "cash" ? (
-                                        <span className="text-lg">₽</span>
-                                    ) : (
-                                        <img
-                                            src={MirLogo}
-                                            alt="Мир"
-                                            className="h-6 w-auto"
-                                        />
-                                    )}
-                                </div>
-                                <div>
-                                    <div className="text-xs text-slate-400">
-                                        {acc.type === "card"
-                                            ? "Банковская карта"
-                                            : acc.type === "cash"
-                                                ? "Наличные"
-                                                : acc.type}
-                                    </div>
-                                    <div className="text-sm font-medium text-slate-900">
-                                        {acc.name}
-                                    </div>
-                                    <div className="text-xs text-slate-500">
-                                        {acc.card_number && (
-                                            <span className="mr-2">
-              **** {acc.card_number}
-            </span>
+                    {accounts.map((acc) => {
+                        const balance = balances[acc.id];
+                        const balanceText =
+                            balance && !balancesLoading
+                                ? formatMoney(balance.balance_minor, balance.currency)
+                                : balancesLoading
+                                    ? "Загружаю баланс..."
+                                    : "—";
+
+                        return (
+                            <div
+                                key={acc.id}
+                                className={
+                                    "flex items-center justify-between rounded-xl p-4 shadow-sm " +
+                                    (acc.is_active ? "bg-white" : "bg-slate-100 opacity-70")
+                                }
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="flex h-10 w-10 items-center justify-center">
+                                        {acc.type === "cash" ? (
+                                            <span className="text-lg">₽</span>
+                                        ) : (
+                                            <img
+                                                src={MirLogo}
+                                                alt="Мир"
+                                                className="h-6 w-auto"
+                                            />
                                         )}
-                                        Валюта: {acc.currency}
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-slate-400">
+                                            {acc.type === "card"
+                                                ? "Банковская карта"
+                                                : acc.type === "cash"
+                                                    ? "Наличные"
+                                                    : acc.type}
+                                        </div>
+                                        <div className="text-sm font-medium text-slate-900">
+                                            {acc.name}
+                                        </div>
+                                        <div className="text-xs text-slate-500">
+                                            {acc.card_number && (
+                                                <span className="mr-2">
+                          **** {acc.card_number}
+                        </span>
+                                            )}
+                                            Валюта: {acc.currency}
+                                        </div>
+                                        <div className="mt-1 text-sm text-emerald-600">
+                                            Баланс:{" "}
+                                            <span className="text-base italic font-semibold text-emerald-600">
+                                               {balanceText}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
+
+                                <div className="flex items-center gap-3">
+                  <span
+                      className={`rounded-full px-2 py-1 text-xs font-medium ${
+                          acc.is_active
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-slate-100 text-slate-500"
+                      }`}
+                  >
+                    {acc.is_active ? "Активен" : "Неактивен"}
+                  </span>
+
+                                    <button
+                                        onClick={() => openEdit(acc)}
+                                        className="text-xs font-medium text-violet-600 hover:text-violet-500"
+                                    >
+                                        Редактировать
+                                    </button>
+
+                                    <button
+                                        onClick={() => handleDelete(acc)}
+                                        className="text-xs font-medium text-red-600 hover:text-red-500"
+                                    >
+                                        Удалить
+                                    </button>
+                                </div>
                             </div>
-
-                            <div className="flex items-center gap-3">
-                <span
-                    className={`rounded-full px-2 py-1 text-xs font-medium ${
-                        acc.is_active
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-slate-100 text-slate-500"
-                    }`}
-                >
-                  {acc.is_active ? "Активен" : "Неактивен"}
-                </span>
-
-                                <button
-                                    onClick={() => openEdit(acc)}
-                                    className="text-xs font-medium text-violet-600 hover:text-violet-500"
-                                >
-                                    Редактировать
-                                </button>
-
-                                <button
-                                    onClick={() => handleDelete(acc)}
-                                    className="text-xs font-medium text-red-600 hover:text-red-500"
-                                >
-                                    Удалить
-                                </button>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 

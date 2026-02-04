@@ -1,5 +1,5 @@
-from typing import Optional
-from datetime import datetime
+from typing import Optional, List
+from datetime import datetime, date
 
 from pydantic import BaseModel, field_validator
 from pydantic import ConfigDict  # pydantic v2
@@ -65,6 +65,8 @@ class AccountUpdate(BaseModel):
 class TransactionUpdate(BaseModel):
     category_id: Optional[int] = None
     description: Optional[str] = None
+    amount_minor: Optional[int] = None
+
 
 # ---------- Out-модели ----------
 
@@ -117,3 +119,46 @@ class CategoryUpdate(BaseModel):
         if v is not None and v not in {"income", "expense"}:
             raise ValueError("type must be 'income' or 'expense'")
         return v
+
+
+# ---------- Dashboard-модели ----------
+
+class DashboardSummaryOut(BaseModel):
+    period: str  # "month" / "week" / "quarter" / "year"
+    date_from: date
+    date_to: date
+    net_flow_minor: int
+    income_minor: int
+    expense_minor: int
+    accounts_balance_minor: int
+    currency: str = "RUB"
+
+
+class DashboardTrendPoint(BaseModel):
+    label: str  # например "Янв", "Фев", "Неделя 1"
+    income_minor: int
+    expense_minor: int
+
+
+class DashboardTrendsOut(BaseModel):
+    period: str
+    date_from: date
+    date_to: date
+    points: List[DashboardTrendPoint]
+    currency: str = "RUB"
+
+
+class DashboardCategoryItem(BaseModel):
+    category_id: int
+    name: str
+    amount_minor: int
+    share: float  # 0.27 == 27%
+
+
+class DashboardCategoriesOut(BaseModel):
+    period: str
+    date_from: date
+    date_to: date
+    total_expense_minor: int
+    currency: str = "RUB"
+    categories: List[DashboardCategoryItem]

@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, HTTPException
+
 
 from services.accounts import (
     create_account as svc_create_account,
@@ -8,6 +8,11 @@ from services.accounts import (
     update_account as svc_update_account,
     delete_account as svc_delete_account,
 )
+
+from fastapi import APIRouter, HTTPException
+from services.transactions import get_account_balance
+from models.account import Account
+from db import session_scope
 
 from api.schemas import AccountCreate, AccountOut, AccountUpdate
 
@@ -52,3 +57,44 @@ def delete_account(account_id: int):
     ok = svc_delete_account(account_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Account not found")
+
+
+@router.get("/{account_id}/balance")
+def get_balance(account_id: int):
+    """
+    Текущий баланс счёта в копейках + валюта.
+    """
+    with session_scope() as session:
+        account = (
+            session.query(Account)
+            .filter(Account.id == account_id)
+            .first()
+        )
+        if account is None:
+            raise HTTPException(status_code=404, detail="Account not found")
+
+        currency = account.currency  # читаем пока сессия жива
+
+    balance_minor = get_account_balance(account_id=account_id)
+
+    return {
+        "account_id": account_id,
+        "balance_minor": balance_minor,
+        "currency": currency,
+    }
+
+
+@router.get("/summary/balance")
+def get_total_balance(currency: str = "RUB"):
+    with session_scope() as session:
+        accounts = (
+            session.query(Account)
+            .filter(Account.currency == currency, Account.is_active == True)
+            .all()
+        )
+
+    total = sum(get_account_balance(a.id, currency) for a in accounts)
+    return {
+        "currency": currency,
+        "total_balance_minor": total,
+    }
