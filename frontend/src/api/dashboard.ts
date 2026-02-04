@@ -39,7 +39,7 @@ export interface DashboardCategories {
   period: PeriodType;
   date_from: string;
   date_to: string;
-  total_expense_minor: number;
+  total_amount_minor: number;
   currency: string;
   categories: DashboardCategoryItem[];
 }
@@ -58,7 +58,7 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 export async function getDashboardSummary(
   period: PeriodType,
   baseDate: string,
-  currency = "RUB"
+  currency = "RUB",
 ): Promise<DashboardSummary> {
   const qs = buildQuery({ period, base_date: baseDate, currency });
   return apiGet<DashboardSummary>(`/dashboard/summary${qs}`);
@@ -67,7 +67,7 @@ export async function getDashboardSummary(
 export async function getDashboardTrends(
   period: PeriodType,
   baseDate: string,
-  currency = "RUB"
+  currency = "RUB",
 ): Promise<DashboardTrends> {
   const qs = buildQuery({ period, base_date: baseDate, currency });
   return apiGet<DashboardTrends>(`/dashboard/trends${qs}`);
@@ -77,8 +77,18 @@ export async function getDashboardCategories(
   period: PeriodType,
   baseDate: string,
   limit = 5,
-  currency = "RUB"
+  currency = "RUB",
 ): Promise<DashboardCategories> {
   const qs = buildQuery({ period, base_date: baseDate, limit, currency });
   return apiGet<DashboardCategories>(`/dashboard/categories${qs}`);
+}
+
+export async function getDashboardIncomeCategories(
+  period: PeriodType,
+  baseDate: string,
+  limit = 5,
+  currency = "RUB",
+): Promise<DashboardCategories> {
+  const qs = buildQuery({ period, base_date: baseDate, limit, currency });
+  return apiGet<DashboardCategories>(`/dashboard/income_categories${qs}`);
 }

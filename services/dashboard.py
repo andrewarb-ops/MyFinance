@@ -384,7 +384,84 @@ def get_categories_summary(
             "period": period,
             "date_from": drange.date_from,
             "date_to": drange.date_to,
-            "total_expense_minor": int(total_expense),
+            "total_amount_minor": int(total_expense),
+            "currency": currency,
+            "categories": categories,
+        }
+
+def get_income_categories_summary(
+    period: PeriodType,
+    base_date: date,
+    currency: str = "RUB",
+    limit: int = 5,
+) -> dict:
+    """
+    Данные для круговой диаграммы и топ-таблицы категорий (только доходы).
+    Переводы не учитываются.
+    """
+    drange = _get_period_range(period, base_date)
+
+    with session_scope() as session:
+        q = (
+            session.query(
+                Category.id.label("category_id"),
+                Category.name.label("name"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (Transaction.amount_minor > 0,
+                             Transaction.amount_minor),
+                            else_=0,
+                        ),
+                    ),
+                    0,
+                ).label("amount"),
+            )
+            .join(Transaction, Transaction.category_id == Category.id)
+            .filter(
+                Transaction.dt
+                >= datetime.combine(
+                    drange.date_from,
+                    datetime.min.time(),
+                ),
+                Transaction.dt
+                <= datetime.combine(
+                    drange.date_to,
+                    datetime.max.time(),
+                ),
+                Transaction.currency == currency,
+                Transaction.amount_minor > 0,
+                Transaction.transfer_group_id.is_(None),  # только реальные доходы
+            )
+            .group_by(Category.id, Category.name)
+            # самые большие доходы (сортируем по сумме по убыванию)
+            .order_by(func.sum(Transaction.amount_minor).desc())
+        )
+
+        rows = q.all()
+
+        total_income = sum(int(r.amount) for r in rows)
+        if total_income == 0:
+            categories = []
+        else:
+            categories = []
+            for r in rows[:limit]:
+                amount = int(r.amount)
+                share = amount / total_income if total_income > 0 else 0
+                categories.append(
+                    {
+                        "category_id": r.category_id,
+                        "name": r.name,
+                        "amount_minor": amount,
+                        "share": float(share),
+                    },
+                )
+
+        return {
+            "period": period,
+            "date_from": drange.date_from,
+            "date_to": drange.date_to,
+            "total_amount_minor": int(total_income),
             "currency": currency,
             "categories": categories,
         }

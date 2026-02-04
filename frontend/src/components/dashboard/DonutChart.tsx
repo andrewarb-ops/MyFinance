@@ -19,7 +19,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({ data }) => {
   if (!data.categories.length) {
     return (
       <div className="text-sm text-gray-500">
-        Нет расходов по категориям
+        Нет данных по категориям
       </div>
     );
   }
@@ -30,11 +30,17 @@ export const DonutChart: React.FC<DonutChartProps> = ({ data }) => {
     color: COLORS[idx % COLORS.length],
   }));
 
-  const totalRub = data.total_expense_minor / 100;
-  const totalText = totalRub.toLocaleString("ru-RU", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const totalMinor = Number.isFinite(data.total_amount_minor)
+    ? data.total_amount_minor
+    : 0;
+
+  const totalRub = totalMinor / 100;
+  const totalText = Number.isFinite(totalRub)
+    ? totalRub.toLocaleString("ru-RU", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+    : "0,00";
 
   return (
     <div className="w-full h-64">
@@ -53,7 +59,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({ data }) => {
             ))}
           </Pie>
 
-          {/* Сумма расходов в центре бублика */}
+          {/* Сумма в центре бублика */}
           <text
             x="50%"
             y="50%"
@@ -65,10 +71,12 @@ export const DonutChart: React.FC<DonutChartProps> = ({ data }) => {
             {totalText} ₽
           </text>
 
-           <Tooltip
+          <Tooltip
             formatter={(value: unknown) => {
-              const num = typeof value === "number" ? value : Number(value);
-              return `${num.toLocaleString("ru-RU", {
+              const num =
+                typeof value === "number" ? value : Number(value ?? 0);
+              const safe = Number.isFinite(num) ? num : 0;
+              return `${safe.toLocaleString("ru-RU", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })} ₽`;

@@ -159,6 +159,6 @@ class DashboardCategoriesOut(BaseModel):
     period: str
     date_from: date
     date_to: date
-    total_expense_minor: int
+    total_amount_minor: int
     currency: str = "RUB"
     categories: List[DashboardCategoryItem]

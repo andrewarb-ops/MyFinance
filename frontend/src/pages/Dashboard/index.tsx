@@ -4,9 +4,9 @@ import {
   getDashboardSummary,
   getDashboardTrends,
   getDashboardCategories,
+  getDashboardIncomeCategories,
 } from "../../api/dashboard";
 import { DonutChart } from "../../components/dashboard/DonutChart";
-
 import { TrendChart } from "../../components/dashboard/TrendChart";
 import type {
   DashboardSummary,
@@ -36,9 +36,10 @@ const DashboardPage: React.FC = () => {
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [trends, setTrends] = useState<DashboardTrends | null>(null);
-  const [categories, setCategories] = useState<DashboardCategories | null>(
-    null
-  );
+  const [expenseCategories, setExpenseCategories] =
+    useState<DashboardCategories | null>(null);
+  const [incomeCategories, setIncomeCategories] =
+    useState<DashboardCategories | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,18 +52,25 @@ const DashboardPage: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        const [s, t, c] = await Promise.all([
+        const [s, t, exp, inc] = await Promise.all([
           getDashboardSummary(period, baseDate),
           getDashboardTrends(period, baseDate),
           getDashboardCategories(period, baseDate, 5),
+          getDashboardIncomeCategories(period, baseDate, 5),
         ]);
 
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
+
         setSummary(s);
         setTrends(t);
-        setCategories(c);
+        setExpenseCategories(exp);
+        setIncomeCategories(inc);
       } catch (e) {
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         setError((e as Error).message);
       } finally {
         if (!cancelled) {
@@ -134,38 +142,53 @@ const DashboardPage: React.FC = () => {
               title="Баланс счетов"
               value={formatMoney(
                 summary.accounts_balance_minor,
-                summary.currency
+                summary.currency,
               )}
             />
           </div>
         </div>
       )}
 
-      {/* Средняя секция: слева тренды, справа категории */}
-     {/* Средняя секция: слева столбцы, справа бублик */}
+      {/* Средняя секция: слева тренды, справа два бублика */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {trends && (
           <div className="bg-white border rounded-lg p-3 shadow-sm">
-            <h2 className="font-semibold mb-2 text-sm">
-              Динамика расходов
-            </h2>
+            <h2 className="font-semibold mb-2 text-sm">Динамика доходов и расходов</h2>
             <TrendChart points={trends.points} />
           </div>
         )}
 
-        {categories && (
-          <div className="bg-white border rounded-lg p-3 shadow-sm">
-            <h2 className="font-semibold mb-2 text-sm">
-              Расходы по категориям
-            </h2>
-            <DonutChart data={categories} />
+        <div className="bg-white border rounded-lg p-3 shadow-sm">
+          <h2 className="font-semibold mb-2 text-sm">
+            Доходы и расходы по категориям
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {expenseCategories && (
+              <div>
+                <h3 className="text-xs font-medium mb-1 text-gray-600">
+                  Расходы
+                </h3>
+                <DonutChart data={expenseCategories} />
+              </div>
+            )}
+            {incomeCategories && (
+              <div>
+                <h3 className="text-xs font-medium mb-1 text-gray-600">
+                  Доходы
+                </h3>
+                <DonutChart data={incomeCategories} />
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Таблица категорий ниже */}
-      {categories && (
-        <TopCategoriesTable data={categories} formatMoney={formatMoney} />
+      {/* Таблица категорий ниже (по расходам) */}
+      {expenseCategories && (
+        <TopCategoriesTable
+          data={expenseCategories}
+          formatMoney={formatMoney}
+        />
       )}
     </div>
   );
