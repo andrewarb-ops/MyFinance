@@ -6,4 +6,3 @@ __pycache__/
 *.db-journal
 *.sqlite
 *.sqlite3
-*.txt
