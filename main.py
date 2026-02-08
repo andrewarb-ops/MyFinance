@@ -1,8 +1,9 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from api.accounts import router as accounts_router
+from api.auth import router as auth_router, get_current_user
 from api.categories import router as categories_router
 from api.dashboard import router as dashboard_router
 from api.transactions import router as transactions_router
@@ -32,10 +33,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(accounts_router)
-app.include_router(categories_router)
-app.include_router(transactions_router)
-app.include_router(dashboard_router)
+app.include_router(auth_router)
+app.include_router(accounts_router, dependencies=[Depends(get_current_user)])
+app.include_router(categories_router, dependencies=[Depends(get_current_user)])
+app.include_router(transactions_router, dependencies=[Depends(get_current_user)])
+app.include_router(dashboard_router, dependencies=[Depends(get_current_user)])
 
 templates = Jinja2Templates(directory="templates")
 
