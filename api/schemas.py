@@ -68,6 +68,21 @@ class TransactionUpdate(BaseModel):
     amount_minor: Optional[int] = None
 
 
+class UserCreate(BaseModel):
+    username: str
+    password: str
+
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str
+
+
 # ---------- Out-модели ----------
 
 class AccountOut(BaseModel):
@@ -102,6 +117,15 @@ class TransactionOut(BaseModel):
     dt: Optional[datetime] = None
     description: Optional[str] = None
     transfer_group_id: Optional[int] = None
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserOut(BaseModel):
+    id: int
+    username: str
+    is_active: bool
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
