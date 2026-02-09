@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from api.schemas import (
     DashboardSummaryOut,
@@ -16,6 +16,8 @@ from services.dashboard import (
     get_categories_summary,
     get_income_categories_summary,  # ← вот это
 )
+from api.auth import get_current_user
+from api.schemas import UserOut
 
 
 
@@ -34,6 +36,7 @@ def dashboard_summary(
     period: str = Query("month"),
     base_date: Optional[date] = Query(None, description="Базовая дата внутри периода"),
     currency: str = Query("RUB"),
+    current_user: UserOut = Depends(get_current_user),
 ):
     """
     Карточки: чистый поток, доходы, расходы, общий баланс счетов.
@@ -41,7 +44,7 @@ def dashboard_summary(
     period_norm = _normalize_period(period)
     base_date = base_date or date.today()
 
-    data = get_summary(period_norm, base_date, currency=currency)
+    data = get_summary(period_norm, base_date, current_user.id, currency=currency)
     return DashboardSummaryOut(**data)
 
 
@@ -50,6 +53,7 @@ def dashboard_trends(
     period: str = Query("month"),
     base_date: Optional[date] = Query(None),
     currency: str = Query("RUB"),
+    current_user: UserOut = Depends(get_current_user),
 ):
     """
     Линейный график динамики доходов и расходов.
@@ -57,7 +61,7 @@ def dashboard_trends(
     period_norm = _normalize_period(period)
     base_date = base_date or date.today()
 
-    data = get_trends(period_norm, base_date, currency=currency)
+    data = get_trends(period_norm, base_date, current_user.id, currency=currency)
     return DashboardTrendsOut(**data)
 
 
@@ -67,6 +71,7 @@ def dashboard_categories(
     base_date: Optional[date] = Query(None),
     currency: str = Query("RUB"),
     limit: int = Query(5, ge=1, le=50),
+    current_user: UserOut = Depends(get_current_user),
 ):
     """
     Круговая диаграмма и топ категорий по расходам.
@@ -77,6 +82,7 @@ def dashboard_categories(
     data = get_categories_summary(
         period_norm,
         base_date,
+        current_user.id,
         currency=currency,
         limit=limit,
     )
@@ -89,6 +95,7 @@ def dashboard_income_categories(
     base_date: Optional[date] = Query(None),
     currency: str = Query("RUB"),
     limit: int = Query(5, ge=1, le=50),
+    current_user: UserOut = Depends(get_current_user),
 ):
     """
     Круговая диаграмма и топ категорий по доходам.
@@ -99,6 +106,7 @@ def dashboard_income_categories(
     data = get_income_categories_summary(
         period_norm,
         base_date,
+        current_user.id,
         currency=currency,
         limit=limit,
     )

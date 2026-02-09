@@ -86,6 +86,7 @@ def _base_tx_query(session, drange: DateRange):
 def get_summary(
     period: PeriodType,
     base_date: date,
+    user_id: int,
     currency: str = "RUB",
 ) -> dict:
     """
@@ -97,6 +98,7 @@ def get_summary(
 
     with session_scope() as session:
         q = _base_tx_query(session, drange).filter(
+            Transaction.user_id == user_id,
             Transaction.currency == currency,
             Transaction.transfer_group_id.is_(None),  # исключаем переводы
         )
@@ -157,6 +159,7 @@ def get_summary(
             .filter(
                 Transaction.account_id.in_(select(accounts_subq.c.id)),
                 Transaction.currency == currency,
+                Transaction.user_id == user_id,
             )
             .scalar()
         )
@@ -176,6 +179,7 @@ def get_summary(
 def get_trends(
     period: PeriodType,
     base_date: date,
+    user_id: int,
     currency: str = "RUB",
 ) -> dict:
     """
@@ -223,6 +227,7 @@ def get_trends(
                         drange.date_to,
                         datetime.max.time(),
                     ),
+                    Transaction.user_id == user_id,
                     Transaction.currency == currency,
                     Transaction.transfer_group_id.is_(None),  # исключаем переводы
                 )
@@ -282,6 +287,7 @@ def get_trends(
                         drange.date_to,
                         datetime.max.time(),
                     ),
+                    Transaction.user_id == user_id,
                     Transaction.currency == currency,
                     Transaction.transfer_group_id.is_(None),  # исключаем переводы
                 )
@@ -314,6 +320,7 @@ def get_trends(
 def get_categories_summary(
     period: PeriodType,
     base_date: date,
+    user_id: int,
     currency: str = "RUB",
     limit: int = 5,
 ) -> dict:
@@ -351,6 +358,7 @@ def get_categories_summary(
                     drange.date_to,
                     datetime.max.time(),
                 ),
+                Transaction.user_id == user_id,
                 Transaction.currency == currency,
                 Transaction.amount_minor < 0,
                 Transaction.transfer_group_id.is_(None),  # только реальные расходы
@@ -392,6 +400,7 @@ def get_categories_summary(
 def get_income_categories_summary(
     period: PeriodType,
     base_date: date,
+    user_id: int,
     currency: str = "RUB",
     limit: int = 5,
 ) -> dict:
@@ -429,6 +438,7 @@ def get_income_categories_summary(
                     drange.date_to,
                     datetime.max.time(),
                 ),
+                Transaction.user_id == user_id,
                 Transaction.currency == currency,
                 Transaction.amount_minor > 0,
                 Transaction.transfer_group_id.is_(None),  # только реальные доходы

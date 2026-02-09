@@ -9,12 +9,14 @@ from services.accounts import (
     delete_account as svc_delete_account,
 )
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from services.transactions import get_account_balance
 from models.account import Account
 from db import session_scope
 
 from api.schemas import AccountCreate, AccountOut, AccountUpdate
+from api.auth import get_current_user
+from api.schemas import UserOut
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
 
@@ -60,7 +62,10 @@ def delete_account(account_id: int):
 
 
 @router.get("/{account_id}/balance")
-def get_balance(account_id: int):
+def get_balance(
+    account_id: int,
+    current_user: UserOut = Depends(get_current_user),
+):
     """
     Текущий баланс счёта в копейках + валюта.
     """
@@ -75,7 +80,10 @@ def get_balance(account_id: int):
 
         currency = account.currency  # читаем пока сессия жива
 
-    balance_minor = get_account_balance(account_id=account_id)
+    balance_minor = get_account_balance(
+        account_id=account_id,
+        user_id=current_user.id,
+    )
 
     return {
         "account_id": account_id,
@@ -85,7 +93,10 @@ def get_balance(account_id: int):
 
 
 @router.get("/summary/balance")
-def get_total_balance(currency: str = "RUB"):
+def get_total_balance(
+    currency: str = "RUB",
+    current_user: UserOut = Depends(get_current_user),
+):
     with session_scope() as session:
         accounts = (
             session.query(Account)
@@ -93,7 +104,10 @@ def get_total_balance(currency: str = "RUB"):
             .all()
         )
 
-    total = sum(get_account_balance(a.id, currency) for a in accounts)
+    total = sum(
+        get_account_balance(a.id, currency, user_id=current_user.id)
+        for a in accounts
+    )
     return {
         "currency": currency,
         "total_balance_minor": total,

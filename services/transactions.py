@@ -15,6 +15,7 @@ MoneySign = Literal["income", "expense"]
 @dataclass
 class TransactionDTO:
     id: int
+    user_id: int | None
     account_id: int
     category_id: Optional[int]
     amount_minor: int  # копейки, +доход, -расход
@@ -27,6 +28,7 @@ class TransactionDTO:
 def _to_dto(tx: Transaction) -> TransactionDTO:
     return TransactionDTO(
         id=tx.id,
+        user_id=tx.user_id,
         account_id=tx.account_id,
         category_id=tx.category_id,
         amount_minor=tx.amount_minor,
@@ -38,6 +40,7 @@ def _to_dto(tx: Transaction) -> TransactionDTO:
 
 
 def add_income(
+    user_id: int,
     account_id: int,
     category_id: Optional[int] = None,
     amount_minor: int = 0,
@@ -56,6 +59,7 @@ def add_income(
         session.query(Account).filter(Account.id == account_id).one()
 
         tx = Transaction(
+            user_id=user_id,
             account_id=account_id,
             category_id=category_id,
             amount_minor=amount_minor,
@@ -70,6 +74,7 @@ def add_income(
 
 
 def add_expense(
+    user_id: int,
     account_id: int,
     category_id: int,
     amount_minor: int,
@@ -87,6 +92,7 @@ def add_expense(
         session.query(Account).filter(Account.id == account_id).one()
 
         tx = Transaction(
+            user_id=user_id,
             account_id=account_id,
             category_id=category_id,
             amount_minor=-amount_minor,  # делаем отрицательной
@@ -101,6 +107,7 @@ def add_expense(
 
 
 def add_transfer(
+    user_id: int,
     from_account_id: int,
     to_account_id: int,
     amount_minor: int,
@@ -121,6 +128,7 @@ def add_transfer(
 
         # создаём списание
         out_tx = Transaction(
+            user_id=user_id,
             account_id=from_account_id,
             category_id=None,
             amount_minor=-amount_minor,
@@ -136,6 +144,7 @@ def add_transfer(
 
         # создаём зачисление
         in_tx = Transaction(
+            user_id=user_id,
             account_id=to_account_id,
             category_id=None,
             amount_minor=amount_minor,
@@ -153,7 +162,11 @@ def add_transfer(
         return [_to_dto(out_tx), _to_dto(in_tx)]
 
 
-def get_account_balance(account_id: int, currency: str | None = None) -> int:
+def get_account_balance(
+    account_id: int,
+    currency: str | None = None,
+    user_id: int | None = None,
+) -> int:
     """Текущий баланс счёта в копейках."""
     from sqlalchemy import func
 
@@ -161,6 +174,8 @@ def get_account_balance(account_id: int, currency: str | None = None) -> int:
         q = session.query(func.coalesce(func.sum(Transaction.amount_minor), 0)).filter(
             Transaction.account_id == account_id,
         )
+        if user_id is not None:
+            q = q.filter(Transaction.user_id == user_id)
         # Если явно передали валюту — учитываем, иначе суммируем всё по счёту
         if currency is not None:
             q = q.filter(Transaction.currency == currency)
@@ -169,20 +184,28 @@ def get_account_balance(account_id: int, currency: str | None = None) -> int:
         return int(total)
 
 
-def delete_transaction(transaction_id: int) -> bool:
+def delete_transaction(transaction_id: int, user_id: int) -> bool:
     """
     Удаляет одну транзакцию.
     Если это часть перевода (есть transfer_group_id),
     удаляет обе записи перевода.
     """
     with session_scope() as session:
-        tx = session.query(Transaction).filter(Transaction.id == transaction_id).first()
+        tx = (
+            session.query(Transaction)
+            .filter(
+                Transaction.id == transaction_id,
+                Transaction.user_id == user_id,
+            )
+            .first()
+        )
         if not tx:
             return False
 
         if tx.transfer_group_id is not None:
             session.query(Transaction).filter(
-                Transaction.transfer_group_id == tx.transfer_group_id
+                Transaction.transfer_group_id == tx.transfer_group_id,
+                Transaction.user_id == user_id,
             ).delete(synchronize_session=False)
         else:
             session.delete(tx)
@@ -193,6 +216,7 @@ def delete_transaction(transaction_id: int) -> bool:
 
 def update_transaction(
     transaction_id: int,
+    user_id: int,
     category_id: Optional[int] = None,
     description: Optional[str] = None,
     amount_minor: Optional[int] = None,
@@ -208,7 +232,14 @@ def update_transaction(
       - перевод: две записи, -amount_minor и +amount_minor.
     """
     with session_scope() as session:
-        tx = session.query(Transaction).filter(Transaction.id == transaction_id).first()
+        tx = (
+            session.query(Transaction)
+            .filter(
+                Transaction.id == transaction_id,
+                Transaction.user_id == user_id,
+            )
+            .first()
+        )
         if not tx:
             return None
 
@@ -229,7 +260,10 @@ def update_transaction(
         if tx.transfer_group_id is not None:
             group_txs = (
                 session.query(Transaction)
-                .filter(Transaction.transfer_group_id == tx.transfer_group_id)
+                .filter(
+                    Transaction.transfer_group_id == tx.transfer_group_id,
+                    Transaction.user_id == user_id,
+                )
                 .all()
             )
             for t in group_txs:

@@ -1,5 +1,6 @@
-﻿import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import React from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { clearAuthToken, isAuthenticated } from "../../auth";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -7,6 +8,7 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navItems = [
     { to: "/dashboard", label: "Общая информация" },
@@ -81,6 +83,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <span className="mr-2">🔎</span>
                 <span>Поиск по транзакциям...</span>
               </div>
+              {isAuthenticated() && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearAuthToken();
+                    navigate("/login");
+                  }}
+                  className="text-xs text-slate-500 hover:text-slate-700"
+                >
+                  Выйти
+                </button>
+              )}
               <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-violet-500 to-fuchsia-500 text-white flex items-center justify-center text-xs font-semibold shadow-md">
                 Я
               </div>
@@ -88,9 +102,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           </header>
 
           {/* Основной контент страниц */}
-          <main className="flex-1 px-8 py-6">
-            {children}
-          </main>
+          <main className="flex-1 px-8 py-6">{children}</main>
         </div>
       </div>
     </div>
