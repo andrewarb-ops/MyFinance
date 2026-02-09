@@ -1,7 +1,19 @@
+import { getAuthToken } from "../auth";
+
 const API_BASE_URL = "http://localhost:8000"; // порт твоего FastAPI
 
+function buildAuthHeader(): HeadersInit {
+  const token = getAuthToken();
+  if (!token) {
+    return {};
+  }
+  return { Authorization: `Bearer ${token}` };
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`);
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    headers: { ...buildAuthHeader() },
+  });
   if (!res.ok) {
     throw new Error(`GET ${path} failed with status ${res.status}`);
   }
@@ -14,7 +26,10 @@ export async function apiPost<TReq, TRes>(
 ): Promise<TRes> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...buildAuthHeader(),
+    },
     body: JSON.stringify(body),
   });
   if (!res.ok) {
@@ -30,7 +45,10 @@ export async function apiPatch<TReq, TRes>(
 ): Promise<TRes> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...buildAuthHeader(),
+    },
     body: JSON.stringify(body),
   });
   if (!res.ok) {
@@ -43,6 +61,7 @@ export async function apiPatch<TReq, TRes>(
 export async function apiDelete(path: string): Promise<void> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "DELETE",
+    headers: { ...buildAuthHeader() },
   });
   if (!res.ok) {
     const text = await res.text();
