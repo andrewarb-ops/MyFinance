@@ -37,7 +37,11 @@ const RegisterPage: React.FC = () => {
           <div>
             <label className="text-xs font-semibold text-slate-600">Логин</label>
             <input
+<<<<<<< codex/review-project-without-changes-7kx3vc
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-400"
+=======
               className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+>>>>>>> master
               type="text"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
@@ -47,7 +51,11 @@ const RegisterPage: React.FC = () => {
           <div>
             <label className="text-xs font-semibold text-slate-600">Пароль</label>
             <input
+<<<<<<< codex/review-project-without-changes-7kx3vc
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-400"
+=======
               className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+>>>>>>> master
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
