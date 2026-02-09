@@ -19,15 +19,26 @@ const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 const App: React.FC = () => {
   return (
-    <MainLayout>
-      <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/accounts" element={<AccountsPage />} />
-        <Route path="/categories" element={<CategoriesPage />} />
-        <Route path="/transactions" element={<TransactionsPage />} />
-      </Routes>
-    </MainLayout>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route
+        path="/*"
+        element={
+          <RequireAuth>
+            <MainLayout>
+              <Routes>
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/accounts" element={<AccountsPage />} />
+                <Route path="/categories" element={<CategoriesPage />} />
+                <Route path="/transactions" element={<TransactionsPage />} />
+              </Routes>
+            </MainLayout>
+          </RequireAuth>
+        }
+      />
+    </Routes>
   );
 };
 
